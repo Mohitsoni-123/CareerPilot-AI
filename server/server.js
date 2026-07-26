@@ -6,6 +6,11 @@ import connectDB from "./config/db.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
+import resumeRoutes from "./routes/resumeRoutes.js";
+import jobRoutes from "./routes/jobRoutes.js";
+
+import applicationRoutes from "./routes/applicationRoutes.js";
+import savedJobRoutes from "./routes/savedJobRoutes.js";
 
 dotenv.config();
 
@@ -34,7 +39,27 @@ app.use(
   userRoutes
 );
 
+app.use(
+  "/api/resumes",
+  resumeRoutes
+);
 
+
+app.use(
+  "/api/jobs",
+  jobRoutes
+);
+
+
+app.use(
+  "/api/applications",
+  applicationRoutes
+);
+
+app.use(
+  "/api/saved-jobs",
+  savedJobRoutes
+);
 app.get("/", (req, res) => {
   res.send(
     "CareerPilot AI API is running..."
