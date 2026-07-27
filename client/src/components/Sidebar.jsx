@@ -9,11 +9,11 @@ import {
   Map,
   Settings,
   LogOut,
+  CalendarCheck,
 } from "lucide-react";
 
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import { useNavigate } from "react-router-dom";
 
 import { logout } from "../redux/slices/authSlice";
 
@@ -46,6 +46,11 @@ const Sidebar = () => {
       name: "Applications",
       icon: ClipboardList,
       path: "/applications",
+    },
+    {
+      name: "Interview Preparation",
+      icon: CalendarCheck,
+      path: "/interview-prep",
     },
     {
       name: "AI Interview",
@@ -92,13 +97,10 @@ const Sidebar = () => {
         </p>
       </div>
 
-
       {/* Navigation */}
 
       <nav className="space-y-2">
-
         {menuItems.map((item) => {
-
           const Icon = item.icon;
 
           return (
@@ -113,20 +115,15 @@ const Sidebar = () => {
                 }`
               }
             >
-
               <Icon size={20} />
 
               <span>
                 {item.name}
               </span>
-
             </NavLink>
           );
-
         })}
-
       </nav>
-
 
       {/* Logout */}
 
@@ -134,11 +131,9 @@ const Sidebar = () => {
         onClick={handleLogout}
         className="flex items-center gap-3 px-4 py-3 mt-8 w-full text-slate-400 hover:text-white hover:bg-red-500/20 rounded-lg"
       >
-
         <LogOut size={20} />
 
         Logout
-
       </button>
 
     </aside>

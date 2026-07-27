@@ -14,6 +14,14 @@ import ApplicationTracker from "./pages/ApplicationTracker";
 import SavedJobs from "./pages/SavedJobs";
 
 import Applications from "./pages/Applications";
+
+import InterviewPrep from "./pages/InterviewPrep";
+
+import MockInterview from "./pages/MockInterview";
+
+import SkillGap from "./pages/SkillGap";
+
+import CareerRoadmap from "./pages/CareerRoadmap";
 function App() {
   return (
     <BrowserRouter>
@@ -41,12 +49,20 @@ function App() {
 
           <Route path="/saved-jobs" element={<SavedJobs />} />
 
-          <Route
+          {/* <Route
             path="/applications"
             element={
                 <Applications />
             }
-          />
+          /> */}
+
+          <Route path="/interview-prep" element={<InterviewPrep />} />
+
+          <Route path="/mock-interview" element={<MockInterview />} />
+
+          <Route path="/skill-gap" element={<SkillGap />} />
+
+          <Route path="/career-roadmap" element={<CareerRoadmap />} />
         </Route>
       </Routes>
     </BrowserRouter>
