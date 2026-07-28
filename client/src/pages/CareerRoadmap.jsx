@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import api from "../services/api";
 
 const CareerRoadmap = () => {
   const [targetRole, setTargetRole] = useState("");
@@ -6,404 +7,487 @@ const CareerRoadmap = () => {
   const [currentSkills, setCurrentSkills] = useState("");
 
   const [roadmap, setRoadmap] = useState(null);
+
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
-  const [updatingPhase, setUpdatingPhase] = useState(null);
-  const [error, setError] = useState("");
+  const [createError, setCreateError] = useState("");
 
-  const API_URL = "http://localhost:5000/api/roadmap";
+  // =====================================
+  // FETCH LATEST ROADMAP
+  // =====================================
 
-  // Get token from localStorage
-  const getToken = () => {
-    return localStorage.getItem("token");
+  const fetchRoadmap = async () => {
+    try {
+      const response = await api.get("/career-roadmap");
+
+      const roadmaps = response.data.careerRoadmaps || [];
+
+      if (roadmaps.length > 0) {
+        setRoadmap(roadmaps[0]);
+      }
+    } catch (error) {
+      console.error("Fetch Career Roadmap Error:", error);
+    } finally {
+      setFetching(false);
+    }
   };
 
-  // Fetch existing roadmap
   useEffect(() => {
-    const fetchRoadmap = async () => {
-      try {
-        const token = getToken();
-
-        if (!token) {
-          setFetching(false);
-          return;
-        }
-
-        const response = await fetch(`${API_URL}/my`, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const data = await response.json();
-
-        if (response.ok && data.success) {
-          setRoadmap(data.roadmap);
-
-          setTargetRole(data.roadmap.targetRole);
-          setCurrentLevel(data.roadmap.currentLevel);
-
-          setCurrentSkills(data.roadmap.currentSkills?.join(", ") || "");
-        }
-      } catch (error) {
-        console.error("Fetch Roadmap Error:", error);
-      } finally {
-        setFetching(false);
-      }
-    };
-
     fetchRoadmap();
   }, []);
 
-  // Generate roadmap
-  const handleGenerateRoadmap = async (e) => {
+  // =====================================
+  // CREATE ROADMAP
+  // =====================================
+
+  const createRoadmap = async (e) => {
     e.preventDefault();
 
-    setError("");
-
     if (!targetRole.trim()) {
-      setError("Please enter your target job role.");
+      alert("Please enter your target role");
       return;
     }
 
-    if (!currentSkills.trim()) {
-      setError("Please enter your current skills.");
-      return;
-    }
+    setLoading(true);
+    setCreateError("");
 
     try {
-      setLoading(true);
+      const response = await api.post("/career-roadmap", {
+        targetRole,
 
-      const token = getToken();
+        currentLevel,
 
-      if (!token) {
-        setError("Please login first.");
-        return;
-      }
-
-      const skillsArray = currentSkills
-        .split(",")
-        .map((skill) => skill.trim())
-        .filter((skill) => skill.length > 0);
-
-      const response = await fetch(`${API_URL}/generate`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          targetRole,
-          currentLevel,
-          currentSkills: skillsArray,
-        }),
+        currentSkills: currentSkills
+          .split(",")
+          .map((skill) => skill.trim())
+          .filter(Boolean),
       });
 
-      const data = await response.json();
+      setRoadmap(response.data.careerRoadmap);
 
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to generate roadmap");
-      }
-
-      setRoadmap(data.roadmap);
+      setTargetRole("");
+      setCurrentSkills("");
     } catch (error) {
-      console.error("Generate Roadmap Error:", error);
-      setError(error.message);
+      console.error("Create Career Roadmap Error:", error);
+
+      // Prefer the specific AI/service error if present, otherwise fall
+      // back to the generic message.
+      const message =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        "Failed to create career roadmap. Please try again.";
+
+      setCreateError(message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Mark phase complete / incomplete
-  const handleTogglePhase = async (phaseIndex) => {
+  // =====================================
+  // UPDATE PHASE
+  // =====================================
+
+  const updatePhase = async (phaseIndex, completed) => {
+    if (!roadmap?._id) return;
+
     try {
-      setError("");
-      setUpdatingPhase(phaseIndex);
-
-      const token = getToken();
-
-      if (!token) {
-        setError("Please login first.");
-        return;
-      }
-
-      const phase = roadmap.phases[phaseIndex];
-
-      const response = await fetch(`${API_URL}/${roadmap._id}/progress`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          phaseIndex,
-          completed: !phase.completed,
-        }),
+      const response = await api.put(`/career-roadmap/${roadmap._id}/phase`, {
+        phaseIndex,
+        completed,
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to update progress");
-      }
-
-      // Update UI with latest roadmap from backend
-      setRoadmap(data.roadmap);
+      setRoadmap(response.data.careerRoadmap);
     } catch (error) {
-      console.error("Update Progress Error:", error);
+      console.error("Update Roadmap Phase Error:", error);
 
-      setError(error.message);
-    } finally {
-      setUpdatingPhase(null);
+      alert(
+        error.response?.data?.message || "Failed to update roadmap progress",
+      );
     }
   };
 
+  // =====================================
+  // DELETE ROADMAP
+  // =====================================
+
+  const deleteRoadmap = async () => {
+    if (!roadmap?._id) return;
+
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this roadmap?",
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await api.delete(`/career-roadmap/${roadmap._id}`);
+
+      setRoadmap(null);
+    } catch (error) {
+      console.error("Delete Roadmap Error:", error);
+
+      alert(error.response?.data?.message || "Failed to delete roadmap");
+    }
+  };
+
+  // =====================================
+  // LOADING (initial fetch)
+  // =====================================
+
   if (fetching) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-600">Loading your career roadmap...</p>
+      <div className="min-h-screen bg-slate-50 p-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="bg-white rounded-2xl border p-8 text-center">
+            <p className="text-slate-500">Loading career roadmap...</p>
+          </div>
+        </div>
       </div>
     );
   }
 
+  // =====================================
+  // CREATE ROADMAP SCREEN
+  // =====================================
+
+  if (!roadmap) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-8">
+        <div className="max-w-4xl mx-auto">
+          {/* Header */}
+
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-slate-900">
+              Career Roadmap
+            </h1>
+
+            <p className="text-slate-500 mt-2">
+              Create a personalized roadmap to reach your career goal.
+            </p>
+          </div>
+
+          {/* Form */}
+
+          <div className="bg-white border border-slate-200 rounded-2xl p-8">
+            {loading ? (
+              // ---------------------------------
+              // AI GENERATING STATE
+              // ---------------------------------
+              <div className="text-center py-10">
+                <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto" />
+
+                <h2 className="text-lg font-semibold text-slate-900 mt-6">
+                  Generating your personalized roadmap...
+                </h2>
+
+                <p className="text-slate-500 mt-2 max-w-sm mx-auto">
+                  Our AI is building a step-by-step plan tailored to{" "}
+                  <span className="font-medium text-slate-700">
+                    {targetRole || "your goal"}
+                  </span>
+                  . This can take a few seconds, please don't close this page.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="mb-6">
+                  <h2 className="text-xl font-semibold text-slate-900">
+                    Create Your Career Roadmap
+                  </h2>
+
+                  <p className="text-slate-500 mt-2">
+                    Tell us about your career goal and current skills.
+                  </p>
+                </div>
+
+                {createError && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 mb-6">
+                    {createError}
+                  </div>
+                )}
+
+                <form onSubmit={createRoadmap} className="space-y-6">
+                  {/* Target Role */}
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Target Career Role
+                    </label>
+
+                    <input
+                      type="text"
+                      value={targetRole}
+                      onChange={(e) => setTargetRole(e.target.value)}
+                      placeholder="e.g. Full Stack Developer, DSA, Data Analyst"
+                      className="w-full border border-slate-300 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  {/* Current Level */}
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Current Level
+                    </label>
+
+                    <select
+                      value={currentLevel}
+                      onChange={(e) => setCurrentLevel(e.target.value)}
+                      className="w-full border border-slate-300 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="Beginner">Beginner</option>
+
+                      <option value="Intermediate">Intermediate</option>
+
+                      <option value="Advanced">Advanced</option>
+                    </select>
+                  </div>
+
+                  {/* Current Skills */}
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Current Skills
+                    </label>
+
+                    <textarea
+                      value={currentSkills}
+                      onChange={(e) => setCurrentSkills(e.target.value)}
+                      placeholder="JavaScript, React, Node.js, MongoDB"
+                      rows="4"
+                      className="w-full border border-slate-300 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    />
+
+                    <p className="text-xs text-slate-500 mt-2">
+                      Separate each skill with a comma.
+                    </p>
+                  </div>
+
+                  {/* Submit */}
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white py-3 rounded-lg font-medium transition"
+                  >
+                    Create Career Roadmap
+                  </button>
+                </form>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =====================================
+  // ROADMAP SCREEN
+  // =====================================
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-slate-50 p-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Career Roadmap</h1>
 
-          <p className="mt-2 text-gray-600">
-            Create a personalized learning roadmap based on your career goals
-            and current skills.
-          </p>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">
+              Career Roadmap
+            </h1>
+
+            <p className="text-slate-500 mt-2">
+              Your roadmap to become a{" "}
+              <span className="font-medium text-slate-700">
+                {roadmap.targetRole}
+              </span>
+            </p>
+          </div>
+
+          <button
+            onClick={deleteRoadmap}
+            className="border border-red-200 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg"
+          >
+            Delete Roadmap
+          </button>
         </div>
 
-        {/* Form */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">
-            Create Your Roadmap
-          </h2>
+        {/* Progress Card */}
 
-          <form onSubmit={handleGenerateRoadmap} className="space-y-5">
-            {/* Target Role */}
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 mb-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Target Job Role
-              </label>
+              <p className="text-sm text-slate-500">Target Role</p>
 
-              <input
-                type="text"
-                value={targetRole}
-                onChange={(e) => setTargetRole(e.target.value)}
-                placeholder="e.g. Full Stack Developer"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+              <h2 className="text-2xl font-bold text-slate-900 mt-1">
+                {roadmap.targetRole}
+              </h2>
 
-            {/* Current Level */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Current Level
-              </label>
-
-              <select
-                value={currentLevel}
-                onChange={(e) => setCurrentLevel(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="Beginner">Beginner</option>
-
-                <option value="Intermediate">Intermediate</option>
-
-                <option value="Advanced">Advanced</option>
-              </select>
-            </div>
-
-            {/* Current Skills */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Your Current Skills
-              </label>
-
-              <textarea
-                value={currentSkills}
-                onChange={(e) => setCurrentSkills(e.target.value)}
-                placeholder="JavaScript, React, Node.js, MongoDB"
-                rows="4"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
-              />
-
-              <p className="text-sm text-gray-500 mt-2">
-                Enter your skills separated by commas.
+              <p className="text-slate-500 mt-2">
+                Current Level:{" "}
+                <span className="font-medium text-slate-700">
+                  {roadmap.currentLevel}
+                </span>
               </p>
             </div>
 
-            {/* Error */}
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl">
-                {error}
-              </div>
-            )}
+            <div className="text-center bg-blue-50 rounded-2xl px-8 py-5">
+              <p className="text-sm text-blue-600 font-medium">
+                Overall Progress
+              </p>
 
-            {/* Generate Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold py-3 rounded-xl transition"
-            >
-              {loading ? "Generating Roadmap..." : "Generate My Roadmap"}
-            </button>
-          </form>
-        </div>
+              <p className="text-4xl font-bold text-blue-700 mt-1">
+                {roadmap.overallProgress}%
+              </p>
 
-        {/* Roadmap Result */}
-        {roadmap && (
-          <div>
-            {/* Roadmap Header */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                  <p className="text-sm text-gray-500">Your Career Goal</p>
-
-                  <h2 className="text-2xl font-bold text-gray-900">
-                    {roadmap.targetRole}
-                  </h2>
-
-                  <p className="text-gray-600 mt-1">
-                    Level: {roadmap.currentLevel}
-                  </p>
-                </div>
-
-                {/* Progress */}
-                <div className="text-center">
-                  <p className="text-sm text-gray-500">Overall Progress</p>
-
-                  <p className="text-3xl font-bold text-blue-600">
-                    {roadmap.progress}%
-                  </p>
-                </div>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="mt-6">
-                <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-blue-600 rounded-full transition-all duration-500"
-                    style={{
-                      width: `${roadmap.progress}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Error */}
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl mb-6">
-                {error}
-              </div>
-            )}
-
-            {/* Roadmap Phases */}
-            <div className="space-y-5">
-              {roadmap.phases?.map((phase, index) => (
-                <div
-                  key={index}
-                  className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6"
-                >
-                  <div className="flex items-start gap-4">
-                    {/* Phase Number */}
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center font-bold flex-shrink-0 ${
-                        phase.completed
-                          ? "bg-green-100 text-green-600"
-                          : "bg-blue-100 text-blue-600"
-                      }`}
-                    >
-                      {phase.completed ? "✓" : index + 1}
-                    </div>
-
-                    <div className="flex-1">
-                      {/* Title + Status */}
-                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                        <h3
-                          className={`text-xl font-semibold ${
-                            phase.completed ? "text-green-700" : "text-gray-900"
-                          }`}
-                        >
-                          {phase.title}
-                        </h3>
-
-                        <span
-                          className={`px-3 py-1 rounded-full text-sm font-medium w-fit ${
-                            phase.completed
-                              ? "bg-green-100 text-green-700"
-                              : "bg-yellow-100 text-yellow-700"
-                          }`}
-                        >
-                          {phase.completed ? "Completed" : "Not Started"}
-                        </span>
-                      </div>
-
-                      {/* Description */}
-                      <p className="text-gray-600 mt-3">{phase.description}</p>
-
-                      {/* Skills */}
-                      <div className="mt-5">
-                        <h4 className="font-semibold text-gray-800 mb-2">
-                          Skills to Learn
-                        </h4>
-
-                        <div className="flex flex-wrap gap-2">
-                          {phase.skills?.map((skill, skillIndex) => (
-                            <span
-                              key={skillIndex}
-                              className="px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-sm"
-                            >
-                              {skill}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Projects */}
-                      <div className="mt-5">
-                        <h4 className="font-semibold text-gray-800 mb-2">
-                          Recommended Projects
-                        </h4>
-
-                        <ul className="list-disc list-inside text-gray-600 space-y-1">
-                          {phase.projects?.map((project, projectIndex) => (
-                            <li key={projectIndex}>{project}</li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      {/* Complete Button */}
-                      <button
-                        onClick={() => handleTogglePhase(index)}
-                        disabled={updatingPhase === index}
-                        className={`mt-6 px-5 py-2.5 rounded-xl font-semibold transition ${
-                          phase.completed
-                            ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                            : "bg-green-600 text-white hover:bg-green-700"
-                        } disabled:opacity-50`}
-                      >
-                        {updatingPhase === index
-                          ? "Updating..."
-                          : phase.completed
-                            ? "Mark as Incomplete"
-                            : "Mark as Complete"}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+              <p className="text-sm text-slate-500 mt-1">{roadmap.status}</p>
             </div>
           </div>
-        )}
+
+          {/* Progress Bar */}
+
+          <div className="mt-6">
+            <div className="flex justify-between text-sm mb-2">
+              <span className="text-slate-500">Roadmap Progress</span>
+
+              <span className="font-medium text-slate-700">
+                {roadmap.overallProgress}%
+              </span>
+            </div>
+
+            <div className="w-full bg-slate-200 rounded-full h-3">
+              <div
+                className="bg-blue-600 h-3 rounded-full transition-all duration-500"
+                style={{
+                  width: `${roadmap.overallProgress}%`,
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Current Skills */}
+
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 mb-8">
+          <h2 className="text-xl font-semibold text-slate-900">
+            Your Current Skills
+          </h2>
+
+          <div className="flex flex-wrap gap-2 mt-5">
+            {roadmap.currentSkills?.length > 0 ? (
+              roadmap.currentSkills.map((skill, index) => (
+                <span
+                  key={index}
+                  className="bg-blue-100 text-blue-700 px-3 py-2 rounded-full text-sm font-medium"
+                >
+                  {skill}
+                </span>
+              ))
+            ) : (
+              <p className="text-slate-500">No skills added.</p>
+            )}
+          </div>
+        </div>
+
+        {/* Roadmap Phases */}
+
+        <div className="space-y-6">
+          {roadmap.roadmap?.map((phase, index) => (
+            <div
+              key={index}
+              className={`bg-white border rounded-2xl p-6 transition ${
+                phase.completed ? "border-green-300" : "border-slate-200"
+              }`}
+            >
+              {/* Phase Header */}
+
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-5">
+                <div className="flex gap-4">
+                  <div
+                    className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold ${
+                      phase.completed
+                        ? "bg-green-100 text-green-700"
+                        : "bg-blue-100 text-blue-700"
+                    }`}
+                  >
+                    {index + 1}
+                  </div>
+
+                  <div>
+                    <p className="text-sm text-blue-600 font-medium">
+                      {phase.phase}
+                    </p>
+
+                    <h2 className="text-xl font-bold text-slate-900 mt-1">
+                      {phase.title}
+                    </h2>
+
+                    <p className="text-slate-500 mt-2">{phase.description}</p>
+                  </div>
+                </div>
+
+                <span className="text-sm text-slate-500">
+                  ⏱️ {phase.duration}
+                </span>
+              </div>
+
+              {/* Skills */}
+
+              <div className="mt-6">
+                <h3 className="font-semibold text-slate-900">
+                  Skills to Learn
+                </h3>
+
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {phase.skills?.map((skill, skillIndex) => (
+                    <span
+                      key={skillIndex}
+                      className="bg-slate-100 text-slate-700 px-3 py-2 rounded-lg text-sm"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Projects */}
+
+              <div className="mt-6">
+                <h3 className="font-semibold text-slate-900">
+                  Recommended Projects
+                </h3>
+
+                <ul className="mt-3 space-y-2">
+                  {phase.projects?.map((project, projectIndex) => (
+                    <li
+                      key={projectIndex}
+                      className="flex items-start gap-2 text-slate-600"
+                    >
+                      <span className="text-blue-600">•</span>
+
+                      {project}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Complete Button */}
+
+              <div className="mt-6 pt-5 border-t border-slate-100">
+                <button
+                  onClick={() => updatePhase(index, !phase.completed)}
+                  className={`px-5 py-3 rounded-lg font-medium transition ${
+                    phase.completed
+                      ? "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                      : "bg-green-600 text-white hover:bg-green-700"
+                  }`}
+                >
+                  {phase.completed ? "Mark as Incomplete" : "Mark as Completed"}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

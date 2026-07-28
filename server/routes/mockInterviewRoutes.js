@@ -6,6 +6,7 @@ import {
   getMockInterviewById,
   submitMockInterviewAnswer,
   completeMockInterview,
+  getNextMockInterviewQuestion,
 } from "../controllers/mockInterviewController.js";
 
 import authMiddleware from "../middleware/authMiddleware.js";
@@ -13,38 +14,21 @@ import authMiddleware from "../middleware/authMiddleware.js";
 const router = express.Router();
 
 // Create Mock Interview
-router.post(
-  "/",
-  authMiddleware,
-  createMockInterview
-);
+router.post("/", authMiddleware, createMockInterview);
 
 // Get All My Mock Interviews
-router.get(
-  "/",
-  authMiddleware,
-  getMyMockInterviews
-);
+router.get("/", authMiddleware, getMyMockInterviews);
 
 // Get Single Mock Interview
-router.get(
-  "/:id",
-  authMiddleware,
-  getMockInterviewById
-);
+router.get("/:id", authMiddleware, getMockInterviewById);
+
+// Get Next Question
+router.get("/:id/next-question", authMiddleware, getNextMockInterviewQuestion);
 
 // Submit Answer
-router.put(
-  "/:id/answer",
-  authMiddleware,
-  submitMockInterviewAnswer
-);
+router.put("/:id/answer", authMiddleware, submitMockInterviewAnswer);
 
 // Complete Interview
-router.put(
-  "/:id/complete",
-  authMiddleware,
-  completeMockInterview
-);
+router.put("/:id/complete", authMiddleware, completeMockInterview);
 
 export default router;

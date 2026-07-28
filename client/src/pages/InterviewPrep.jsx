@@ -1,489 +1,763 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import {
+  BookOpen,
+  Code,
+  Database,
+  Globe,
+  Brain,
+  Users,
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  RotateCcw,
+} from "lucide-react";
+
 import api from "../services/api";
 
-const interviewTypes = [
-  "Technical",
-  "HR",
-  "Behavioral",
-  "System Design",
-  "General",
-];
+const InterviewPreparation = () => {
+  // ==========================================
+  // SELECTION STATES
+  // ==========================================
 
-const statuses = ["Upcoming", "Completed", "Cancelled"];
+  const [selectedRole, setSelectedRole] =
+    useState("");
 
-const InterviewPrep = () => {
-  const [interviews, setInterviews] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState(null);
+  const [selectedType, setSelectedType] =
+    useState("");
 
-  const [formData, setFormData] = useState({
-    role: "",
-    company: "",
-    interviewType: "General",
-    scheduledAt: "",
-    notes: "",
-  });
+  const [selectedTopic, setSelectedTopic] =
+    useState("");
 
-  // ===============================
-  // FETCH INTERVIEWS
-  // ===============================
 
-  const fetchInterviews = async () => {
+  // ==========================================
+  // INTERVIEW STATES
+  // ==========================================
+
+  const [questions, setQuestions] =
+    useState([]);
+
+  const [currentQuestion, setCurrentQuestion] =
+    useState(0);
+
+  const [showAnswer, setShowAnswer] =
+    useState(false);
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [started, setStarted] =
+    useState(false);
+
+
+  // ==========================================
+  // ROLES
+  // ==========================================
+
+  const roles = [
+    "Full Stack Developer",
+    "Frontend Developer",
+    "Backend Developer",
+    "Software Developer",
+    "Data Analyst",
+  ];
+
+
+  // ==========================================
+  // INTERVIEW TYPES
+  // ==========================================
+
+  const interviewTypes = [
+    "Technical Interview",
+    "HR Interview",
+    "Behavioral Interview",
+  ];
+
+
+  // ==========================================
+  // TOPICS
+  // ==========================================
+
+  const topics = [
+    {
+      name: "JavaScript",
+      icon: Code,
+    },
+    {
+      name: "React.js",
+      icon: Globe,
+    },
+    {
+      name: "Node.js",
+      icon: Code,
+    },
+    {
+      name: "MongoDB",
+      icon: Database,
+    },
+    {
+      name: "DSA",
+      icon: Brain,
+    },
+    {
+      name: "DBMS",
+      icon: Database,
+    },
+    {
+      name: "OOPs",
+      icon: BookOpen,
+    },
+    {
+      name: "HR Questions",
+      icon: Users,
+    },
+  ];
+
+
+  // ==========================================
+  // START PREPARATION
+  // ==========================================
+
+  const startPreparation = async () => {
+    if (!selectedRole) {
+      alert("Please select your target role");
+      return;
+    }
+
+    if (!selectedType) {
+      alert("Please select interview type");
+      return;
+    }
+
+    if (!selectedTopic) {
+      alert("Please select a topic");
+      return;
+    }
+
+    setLoading(true);
+
     try {
-      const response = await api.get("/interviews");
+      const response = await api.get(
+        "/interview-prep/questions",
+        {
+          params: {
+            role: selectedRole,
+            interviewType: selectedType,
+            topic: selectedTopic,
+          },
+        }
+      );
 
-      setInterviews(response.data.interviews || []);
+      setQuestions(
+        response.data.questions || []
+      );
+
+      setCurrentQuestion(0);
+
+      setShowAnswer(false);
+
+      setStarted(true);
+
     } catch (error) {
-      console.error("Fetch Interviews Error:", error);
+      console.error(
+        "Interview Preparation Error:",
+        error
+      );
 
-      alert(error.response?.data?.message || "Failed to fetch interviews");
+      alert(
+        error.response?.data?.message ||
+          "Failed to load interview questions"
+      );
+
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchInterviews();
-  }, []);
 
-  // ===============================
-  // HANDLE INPUT
-  // ===============================
+  // ==========================================
+  // NEXT QUESTION
+  // ==========================================
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-
-    setFormData((previous) => ({
-      ...previous,
-      [name]: value,
-    }));
-  };
-
-  // ===============================
-  // RESET FORM
-  // ===============================
-
-  const resetForm = () => {
-    setFormData({
-      role: "",
-      company: "",
-      interviewType: "General",
-      scheduledAt: "",
-      notes: "",
-    });
-
-    setEditingId(null);
-    setShowForm(false);
-  };
-
-  // ===============================
-  // CREATE / UPDATE INTERVIEW
-  // ===============================
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!formData.role.trim()) {
-      alert("Please enter job role");
-
-      return;
-    }
-
-    try {
-      if (editingId) {
-        await api.put(`/interviews/${editingId}`, {
-          ...formData,
-          scheduledAt: formData.scheduledAt
-            ? new Date(formData.scheduledAt).toISOString()
-            : null,
-        });
-
-        alert("Interview updated successfully");
-      } else {
-        await api.post("/interviews", {
-          ...formData,
-          scheduledAt: formData.scheduledAt
-            ? new Date(formData.scheduledAt).toISOString()
-            : null,
-        });
-
-        alert("Interview created successfully");
-      }
-
-      resetForm();
-
-      fetchInterviews();
-    } catch (error) {
-      console.error("Interview Save Error:", error);
-
-      alert(error.response?.data?.message || "Failed to save interview");
-    }
-  };
-
-  // ===============================
-  // EDIT INTERVIEW
-  // ===============================
-
-  const handleEdit = (interview) => {
-    setEditingId(interview._id);
-
-    setFormData({
-      role: interview.role || "",
-      company: interview.company || "",
-      interviewType: interview.interviewType || "General",
-      scheduledAt: interview.scheduledAt
-        ? new Date(interview.scheduledAt).toISOString().slice(0, 16)
-        : "",
-      notes: interview.notes || "",
-    });
-
-    setShowForm(true);
-  };
-
-  // ===============================
-  // UPDATE STATUS
-  // ===============================
-
-  const updateStatus = async (interviewId, status) => {
-    try {
-      await api.put(`/interviews/${interviewId}`, {
-        status,
-      });
-
-      setInterviews((previous) =>
-        previous.map((interview) =>
-          interview._id === interviewId
-            ? {
-                ...interview,
-                status,
-              }
-            : interview,
-        ),
+  const handleNextQuestion = () => {
+    if (
+      currentQuestion <
+      questions.length - 1
+    ) {
+      setCurrentQuestion(
+        currentQuestion + 1
       );
-    } catch (error) {
-      console.error("Update Interview Status Error:", error);
 
-      alert(error.response?.data?.message || "Failed to update status");
+      setShowAnswer(false);
     }
   };
 
-  // ===============================
-  // DELETE INTERVIEW
-  // ===============================
 
-  const deleteInterview = async (interviewId) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this interview?",
-    );
+  // ==========================================
+  // PREVIOUS QUESTION
+  // ==========================================
 
-    if (!confirmDelete) {
-      return;
-    }
-
-    try {
-      await api.delete(`/interviews/${interviewId}`);
-
-      setInterviews((previous) =>
-        previous.filter((interview) => interview._id !== interviewId),
+  const handlePreviousQuestion = () => {
+    if (currentQuestion > 0) {
+      setCurrentQuestion(
+        currentQuestion - 1
       );
-    } catch (error) {
-      console.error("Delete Interview Error:", error);
 
-      alert(error.response?.data?.message || "Failed to delete interview");
+      setShowAnswer(false);
     }
   };
 
-  // ===============================
-  // LOADING
-  // ===============================
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-50 p-8">
-        <div className="max-w-6xl mx-auto">
-          <p className="text-slate-500">Loading interviews...</p>
-        </div>
-      </div>
-    );
-  }
+  // ==========================================
+  // RESTART PREPARATION
+  // ==========================================
 
-  // ===============================
-  // UI
-  // ===============================
+  const restartPreparation = () => {
+    setQuestions([]);
+
+    setCurrentQuestion(0);
+
+    setShowAnswer(false);
+
+    setStarted(false);
+  };
+
+
+  // ==========================================
+  // CURRENT QUESTION
+  // ==========================================
+
+  const currentQuestionData =
+    questions[currentQuestion];
+
+
+  // ==========================================
+  // PROGRESS
+  // ==========================================
+
+  const progress =
+    questions.length > 0
+      ? ((currentQuestion + 1) /
+          questions.length) *
+        100
+      : 0;
+
 
   return (
     <div className="min-h-screen bg-slate-50 p-8">
+
       <div className="max-w-6xl mx-auto">
+
+
+        {/* ================================= */}
         {/* HEADER */}
+        {/* ================================= */}
 
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900">
-              Interview Preparation
-            </h1>
+        <div className="mb-8">
 
-            <p className="text-slate-500 mt-2">
-              Schedule and manage your upcoming interviews.
-            </p>
-          </div>
+          <h1 className="text-3xl font-bold text-slate-900">
+            Interview Preparation
+          </h1>
 
-          <button
-            onClick={() => {
-              setEditingId(null);
+          <p className="text-slate-500 mt-2">
+            Prepare for your next interview with
+            role-based questions and important
+            interview topics.
+          </p>
 
-              setFormData({
-                role: "",
-                company: "",
-                interviewType: "General",
-                scheduledAt: "",
-                notes: "",
-              });
-
-              setShowForm(true);
-            }}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-medium"
-          >
-            + Add Interview
-          </button>
         </div>
 
-        {/* FORM */}
 
-        {showForm && (
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 mt-8">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold">
-                {editingId ? "Edit Interview" : "Schedule New Interview"}
-              </h2>
+        {/* ================================= */}
+        {/* SELECTION SECTION */}
+        {/* ================================= */}
 
-              <button
-                onClick={resetForm}
-                className="text-slate-500 hover:text-slate-900 text-xl"
-              >
-                ✕
-              </button>
-            </div>
+        {!started && (
 
-            <form
-              onSubmit={handleSubmit}
-              className="grid grid-cols-1 md:grid-cols-2 gap-5"
-            >
-              {/* ROLE */}
+          <>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Job Role
-                </label>
+            {/* ROLE */}
 
-                <input
-                  type="text"
-                  name="role"
-                  value={formData.role}
-                  onChange={handleChange}
-                  placeholder="e.g. Full Stack Developer"
-                  className="w-full border border-slate-300 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 mb-6">
 
-              {/* COMPANY */}
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Company
-                </label>
-
-                <input
-                  type="text"
-                  name="company"
-                  value={formData.company}
-                  onChange={handleChange}
-                  placeholder="e.g. Google"
-                  className="w-full border border-slate-300 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              {/* INTERVIEW TYPE */}
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Interview Type
-                </label>
-
-                <select
-                  name="interviewType"
-                  value={formData.interviewType}
-                  onChange={handleChange}
-                  className="w-full border border-slate-300 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {interviewTypes.map((type) => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* DATE */}
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Interview Date & Time
-                </label>
-
-                <input
-                  type="datetime-local"
-                  name="scheduledAt"
-                  value={formData.scheduledAt}
-                  onChange={handleChange}
-                  className="w-full border border-slate-300 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              {/* NOTES */}
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Notes
-                </label>
-
-                <textarea
-                  name="notes"
-                  value={formData.notes}
-                  onChange={handleChange}
-                  rows="4"
-                  placeholder="Add preparation notes..."
-                  className="w-full border border-slate-300 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              {/* BUTTONS */}
-
-              <div className="md:col-span-2 flex gap-3">
-                <button
-                  type="submit"
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium"
-                >
-                  {editingId ? "Update Interview" : "Create Interview"}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-6 py-3 rounded-lg"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* INTERVIEW LIST */}
-
-        <div className="mt-8 space-y-5">
-          {interviews.length === 0 ? (
-            <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center">
-              <div className="text-5xl">🎯</div>
-
-              <h2 className="text-xl font-semibold mt-4">
-                No Interviews Scheduled
+              <h2 className="text-xl font-semibold text-slate-900">
+                1. Select Your Target Role
               </h2>
 
               <p className="text-slate-500 mt-2">
-                Add your upcoming interviews to start preparing.
+                Choose the role you are preparing for.
               </p>
-            </div>
-          ) : (
-            interviews.map((interview) => (
-              <div
-                key={interview._id}
-                className="bg-white border border-slate-200 rounded-2xl p-6"
-              >
-                {/* TOP */}
 
-                <div className="flex flex-col md:flex-row md:justify-between gap-4">
-                  <div>
-                    <h2 className="text-xl font-semibold text-slate-900">
-                      {interview.role}
-                    </h2>
 
-                    <p className="text-slate-500 mt-1">
-                      {interview.company || "Company not specified"}
-                    </p>
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
 
-                  <span className="bg-blue-100 text-blue-700 px-4 py-2 rounded-full h-fit text-sm font-medium">
-                    {interview.status}
-                  </span>
-                </div>
+                {roles.map((role) => (
 
-                {/* DETAILS */}
-
-                <div className="flex flex-wrap gap-3 mt-5">
-                  <span className="bg-slate-100 text-slate-700 px-3 py-2 rounded-lg text-sm">
-                    🎯 {interview.interviewType}
-                  </span>
-
-                  {interview.scheduledAt && (
-                    <span className="bg-slate-100 text-slate-700 px-3 py-2 rounded-lg text-sm">
-                      📅 {new Date(interview.scheduledAt).toLocaleString()}
-                    </span>
-                  )}
-                </div>
-
-                {/* NOTES */}
-
-                {interview.notes && (
-                  <div className="mt-5 bg-slate-50 rounded-lg p-4">
-                    <p className="text-sm font-medium text-slate-700">
-                      Preparation Notes
-                    </p>
-
-                    <p className="text-sm text-slate-500 mt-1">
-                      {interview.notes}
-                    </p>
-                  </div>
-                )}
-
-                {/* ACTIONS */}
-
-                <div className="flex flex-wrap items-center gap-3 mt-6">
-                  <select
-                    value={interview.status}
-                    onChange={(e) =>
-                      updateStatus(interview._id, e.target.value)
+                  <button
+                    key={role}
+                    onClick={() =>
+                      setSelectedRole(role)
                     }
-                    className="border border-slate-300 rounded-lg px-3 py-2"
+                    className={`p-4 rounded-xl border text-left transition ${
+                      selectedRole === role
+                        ? "border-blue-600 bg-blue-50 text-blue-700"
+                        : "border-slate-200 hover:border-blue-400 hover:bg-slate-50"
+                    }`}
                   >
-                    {statuses.map((status) => (
-                      <option key={status} value={status}>
-                        {status}
-                      </option>
-                    ))}
-                  </select>
 
-                  <button
-                    onClick={() => handleEdit(interview)}
-                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg"
-                  >
-                    Edit
+                    <p className="font-medium">
+                      {role}
+                    </p>
+
                   </button>
 
-                  <button
-                    onClick={() => deleteInterview(interview._id)}
-                    className="bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-lg"
-                  >
-                    Delete
-                  </button>
-                </div>
+                ))}
+
               </div>
-            ))
-          )}
-        </div>
+
+            </div>
+
+
+            {/* INTERVIEW TYPE */}
+
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 mb-6">
+
+              <h2 className="text-xl font-semibold text-slate-900">
+                2. Select Interview Type
+              </h2>
+
+              <p className="text-slate-500 mt-2">
+                Choose the type of interview you want
+                to prepare for.
+              </p>
+
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+
+                {interviewTypes.map((type) => (
+
+                  <button
+                    key={type}
+                    onClick={() =>
+                      setSelectedType(type)
+                    }
+                    className={`p-4 rounded-xl border text-left transition ${
+                      selectedType === type
+                        ? "border-blue-600 bg-blue-50 text-blue-700"
+                        : "border-slate-200 hover:border-blue-400 hover:bg-slate-50"
+                    }`}
+                  >
+
+                    <p className="font-medium">
+                      {type}
+                    </p>
+
+                  </button>
+
+                ))}
+
+              </div>
+
+            </div>
+
+
+            {/* TOPICS */}
+
+            <div className="bg-white border border-slate-200 rounded-2xl p-6">
+
+              <h2 className="text-xl font-semibold text-slate-900">
+                3. Choose a Preparation Topic
+              </h2>
+
+              <p className="text-slate-500 mt-2">
+                Select a topic to start practicing.
+              </p>
+
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+
+                {topics.map((topic) => {
+
+                  const Icon = topic.icon;
+
+                  return (
+
+                    <button
+                      key={topic.name}
+                      onClick={() =>
+                        setSelectedTopic(
+                          topic.name
+                        )
+                      }
+                      className={`p-5 rounded-xl border transition ${
+                        selectedTopic ===
+                        topic.name
+                          ? "border-blue-600 bg-blue-50 text-blue-700"
+                          : "border-slate-200 hover:border-blue-400 hover:bg-slate-50"
+                      }`}
+                    >
+
+                      <Icon
+                        size={28}
+                        className="mb-3"
+                      />
+
+                      <p className="font-medium">
+                        {topic.name}
+                      </p>
+
+                    </button>
+
+                  );
+                })}
+
+              </div>
+
+            </div>
+
+
+            {/* ================================= */}
+            {/* SELECTION SUMMARY */}
+            {/* ================================= */}
+
+            {(selectedRole ||
+              selectedType ||
+              selectedTopic) && (
+
+              <div className="mt-6 bg-blue-50 border border-blue-200 rounded-2xl p-6">
+
+                <h2 className="text-lg font-semibold text-blue-900">
+                  Your Preparation Plan
+                </h2>
+
+
+                <div className="mt-4 space-y-2">
+
+                  <p className="text-blue-800">
+                    <strong>
+                      Role:
+                    </strong>{" "}
+                    {selectedRole ||
+                      "Not selected"}
+                  </p>
+
+
+                  <p className="text-blue-800">
+                    <strong>
+                      Interview Type:
+                    </strong>{" "}
+                    {selectedType ||
+                      "Not selected"}
+                  </p>
+
+
+                  <p className="text-blue-800">
+                    <strong>
+                      Topic:
+                    </strong>{" "}
+                    {selectedTopic ||
+                      "Not selected"}
+                  </p>
+
+                </div>
+
+
+                {selectedRole &&
+                  selectedType &&
+                  selectedTopic && (
+
+                    <>
+
+                      <div className="mt-5 flex items-center gap-2 text-green-700">
+
+                        <CheckCircle size={20} />
+
+                        <span className="font-medium">
+                          Your preparation preferences
+                          are ready!
+                        </span>
+
+                      </div>
+
+
+                      {/* START BUTTON */}
+
+                      <button
+                        onClick={
+                          startPreparation
+                        }
+                        disabled={loading}
+                        className="mt-6 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white py-3 rounded-lg font-medium transition"
+                      >
+
+                        {loading
+                          ? "Loading Questions..."
+                          : "Start Preparation"}
+
+                      </button>
+
+                    </>
+
+                  )}
+
+              </div>
+
+            )}
+
+          </>
+
+        )}
+
+
+        {/* ================================= */}
+        {/* QUESTION SECTION */}
+        {/* ================================= */}
+
+        {started &&
+          currentQuestionData && (
+
+          <div className="space-y-6">
+
+
+            {/* INTERVIEW INFO */}
+
+            <div className="bg-white border border-slate-200 rounded-2xl p-6">
+
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+
+                <div>
+
+                  <p className="text-sm text-slate-500">
+                    Interview Preparation
+                  </p>
+
+                  <h2 className="text-xl font-bold text-slate-900 mt-1">
+                    {selectedRole}
+                  </h2>
+
+                </div>
+
+
+                <div className="text-right">
+
+                  <p className="text-sm text-slate-500">
+                    {selectedType}
+                  </p>
+
+                  <p className="font-semibold text-blue-600">
+                    {selectedTopic}
+                  </p>
+
+                </div>
+
+              </div>
+
+            </div>
+
+
+            {/* PROGRESS */}
+
+            <div className="bg-white border border-slate-200 rounded-2xl p-6">
+
+              <div className="flex justify-between mb-3">
+
+                <p className="text-sm font-medium text-slate-700">
+                  Question{" "}
+                  {currentQuestion + 1}{" "}
+                  of{" "}
+                  {questions.length}
+                </p>
+
+                <p className="text-sm font-medium text-blue-600">
+                  {Math.round(progress)}%
+                </p>
+
+              </div>
+
+
+              <div className="w-full bg-slate-200 rounded-full h-3">
+
+                <div
+                  className="bg-blue-600 h-3 rounded-full transition-all duration-300"
+                  style={{
+                    width: `${progress}%`,
+                  }}
+                />
+
+              </div>
+
+            </div>
+
+
+            {/* QUESTION CARD */}
+
+            <div className="bg-white border border-slate-200 rounded-2xl p-8">
+
+              <div className="flex items-center justify-between">
+
+                <span className="text-sm text-slate-500">
+                  Question{" "}
+                  {currentQuestion + 1}
+                </span>
+
+
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    currentQuestionData.difficulty ===
+                    "Easy"
+                      ? "bg-green-100 text-green-700"
+                      : currentQuestionData.difficulty ===
+                        "Medium"
+                      ? "bg-yellow-100 text-yellow-700"
+                      : "bg-red-100 text-red-700"
+                  }`}
+                >
+                  {currentQuestionData.difficulty}
+                </span>
+
+              </div>
+
+
+              {/* QUESTION */}
+
+              <h2 className="text-2xl font-bold text-slate-900 mt-6 leading-relaxed">
+
+                {currentQuestionData.question}
+
+              </h2>
+
+
+              {/* SHOW ANSWER */}
+
+              {!showAnswer && (
+
+                <button
+                  onClick={() =>
+                    setShowAnswer(true)
+                  }
+                  className="mt-8 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition"
+                >
+                  Show Answer
+                </button>
+
+              )}
+
+
+              {/* ANSWER */}
+
+              {showAnswer && (
+
+                <div className="mt-8 bg-green-50 border border-green-200 rounded-xl p-6">
+
+                  <h3 className="text-lg font-semibold text-green-800">
+
+                    Answer
+
+                  </h3>
+
+
+                  <p className="text-slate-700 mt-3 leading-relaxed">
+
+                    {currentQuestionData.answer}
+
+                  </p>
+
+                </div>
+
+              )}
+
+
+              {/* NAVIGATION */}
+
+              {showAnswer && (
+
+                <div className="mt-8 flex flex-col sm:flex-row gap-4">
+
+                  {/* PREVIOUS */}
+
+                  <button
+                    onClick={
+                      handlePreviousQuestion
+                    }
+                    disabled={
+                      currentQuestion === 0
+                    }
+                    className="flex items-center justify-center gap-2 px-6 py-3 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                  >
+
+                    <ChevronLeft size={20} />
+
+                    Previous
+
+                  </button>
+
+
+                  {/* NEXT */}
+
+                  {currentQuestion <
+                  questions.length - 1 ? (
+
+                    <button
+                      onClick={
+                        handleNextQuestion
+                      }
+                      className="flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition sm:ml-auto"
+                    >
+
+                      Next Question
+
+                      <ChevronRight
+                        size={20}
+                      />
+
+                    </button>
+
+                  ) : (
+
+                    <button
+                      onClick={
+                        restartPreparation
+                      }
+                      className="flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition sm:ml-auto"
+                    >
+
+                      <RotateCcw
+                        size={20}
+                      />
+
+                      Finish Preparation
+
+                    </button>
+
+                  )}
+
+                </div>
+
+              )}
+
+            </div>
+
+
+            {/* BACK TO SELECTION */}
+
+            <button
+              onClick={
+                restartPreparation
+              }
+              className="text-slate-500 hover:text-blue-600 text-sm font-medium transition"
+            >
+
+              ← Choose Different Preparation
+
+            </button>
+
+          </div>
+
+        )}
+
       </div>
+
     </div>
   );
 };
 
-export default InterviewPrep;
+export default InterviewPreparation;

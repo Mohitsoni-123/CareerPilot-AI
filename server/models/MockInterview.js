@@ -35,6 +35,11 @@ const mockInterviewSchema = new mongoose.Schema(
       default: "Medium",
     },
 
+    totalQuestions: {
+      type: Number,
+      default: 15,
+    },
+
     questions: [
       {
         question: {

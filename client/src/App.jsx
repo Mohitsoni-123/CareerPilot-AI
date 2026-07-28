@@ -22,6 +22,8 @@ import MockInterview from "./pages/MockInterview";
 import SkillGap from "./pages/SkillGap";
 
 import CareerRoadmap from "./pages/CareerRoadmap";
+
+import Settings from "./pages/Settings";
 function App() {
   return (
     <BrowserRouter>
@@ -63,6 +65,8 @@ function App() {
           <Route path="/skill-gap" element={<SkillGap />} />
 
           <Route path="/career-roadmap" element={<CareerRoadmap />} />
+
+          <Route path="/settings" element={<Settings />} />
         </Route>
       </Routes>
     </BrowserRouter>

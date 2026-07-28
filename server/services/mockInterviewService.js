@@ -1,17 +1,23 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import Groq from "groq-sdk";
 
-const genAI = new GoogleGenerativeAI(
-  process.env.GEMINI_API_KEY
-);
+let groqClient = null;
+
+function getGroqClient() {
+  if (!groqClient) {
+    if (!process.env.GROQ_API_KEY) {
+      throw new Error("GROQ_API_KEY is not set in environment variables");
+    }
+    groqClient = new Groq({ apiKey: process.env.GROQ_API_KEY });
+  }
+  return groqClient;
+}
 
 export const generateMockInterviewQuestion = async ({
   role,
   interviewType,
   difficulty,
 }) => {
-  const model = genAI.getGenerativeModel({
-    model: "gemini-2.0-flash",
-  });
+  const groq = getGroqClient();
 
   const prompt = `
 You are an expert technical interviewer.
@@ -36,9 +42,15 @@ Rules:
 6. Do not use markdown.
 `;
 
-  const result = await model.generateContent(prompt);
+  const completion = await groq.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
+    messages: [
+      { role: "user", content: prompt },
+    ],
+    temperature: 0.7,
+  });
 
-  const response = result.response.text();
+  const response = completion.choices[0]?.message?.content;
 
   return response.trim();
 };

@@ -1,20 +1,11 @@
 import fs from "fs";
-import { PDFParse } from "pdf-parse";
+import pdf from "pdf-parse";
 
 import Resume from "../models/Resume.js";
+import { analyzeResumeWithAI } from "../services/geminiService.js";
 
-import {
-  analyzeResumeWithAI,
-} from "../services/geminiService.js";
-
-
-export const analyzeResume = async (
-  req,
-  res
-) => {
-
+export const analyzeResume = async (req, res) => {
   try {
-
     if (!req.file) {
       return res.status(400).json({
         success: false,
@@ -22,122 +13,74 @@ export const analyzeResume = async (
       });
     }
 
-
     // Read PDF
 
-    const dataBuffer =
-      fs.readFileSync(
-        req.file.path
-      );
-
+    const dataBuffer = fs.readFileSync(req.file.path);
 
     // Extract text
 
-    const pdfData =
-      await pdf(dataBuffer);
+    const pdfData = await pdf(dataBuffer);
 
-    const resumeText =
-      pdfData.text;
-
+    const resumeText = pdfData.text;
 
     if (!resumeText.trim()) {
-
       return res.status(400).json({
         success: false,
-        message:
-          "Could not extract text from resume",
+        message: "Could not extract text from resume",
       });
-
     }
-
 
     // Analyze using Gemini
 
-    const aiResponse =
-      await analyzeResumeWithAI(
-        resumeText
-      );
-
+    const aiResponse = await analyzeResumeWithAI(resumeText);
 
     // Clean AI response
 
-    const cleanedResponse =
-      aiResponse
-        .replace(/```json/g, "")
-        .replace(/```/g, "")
-        .trim();
+    const cleanedResponse = aiResponse
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
 
-
-    const analysis =
-      JSON.parse(cleanedResponse);
-
+    const analysis = JSON.parse(cleanedResponse);
 
     // Save to MongoDB
 
-    const resume =
-      await Resume.create({
+    const resume = await Resume.create({
+      user: req.user._id,
 
-        user: req.user._id,
+      fileName: req.file.originalname,
 
-        fileName:
-          req.file.originalname,
+      originalText: resumeText,
 
-        originalText:
-          resumeText,
+      atsScore: analysis.atsScore,
 
-        atsScore:
-          analysis.atsScore,
+      summary: analysis.summary,
 
-        summary:
-          analysis.summary,
+      strengths: analysis.strengths,
 
-        strengths:
-          analysis.strengths,
+      weaknesses: analysis.weaknesses,
 
-        weaknesses:
-          analysis.weaknesses,
+      missingSkills: analysis.missingSkills,
 
-        missingSkills:
-          analysis.missingSkills,
-
-        suggestions:
-          analysis.suggestions,
-
-      });
-
+      suggestions: analysis.suggestions,
+    });
 
     res.status(201).json({
-
       success: true,
 
-      message:
-        "Resume analyzed successfully",
+      message: "Resume analyzed successfully",
 
       resume,
-
     });
-
-
   } catch (error) {
-
-    console.error(
-      "Resume Analysis Error:",
-      error
-    );
-
+    console.error("Resume Analysis Error:", error);
 
     res.status(500).json({
-
       success: false,
 
-      message:
-        "Failed to analyze resume",
+      message: "Failed to analyze resume",
 
-      error:
-        error.message,
-
+      error: error.message,
     });
-
   }
-
 };

@@ -19,12 +19,14 @@ const MockInterview = () => {
   const [interview, setInterview] = useState(null);
 
   const [currentQuestion, setCurrentQuestion] = useState("");
+  const [questionIndex, setQuestionIndex] = useState(0);
+  const [totalQuestions, setTotalQuestions] = useState(15);
 
   const [answer, setAnswer] = useState("");
 
   const [loading, setLoading] = useState(false);
-
   const [submitting, setSubmitting] = useState(false);
+  const [isFinished, setIsFinished] = useState(false);
 
   // =====================================
   // START MOCK INTERVIEW
@@ -48,10 +50,11 @@ const MockInterview = () => {
       });
 
       setInterview(response.data.interview);
-
       setCurrentQuestion(response.data.currentQuestion);
-
+      setQuestionIndex(response.data.questionIndex ?? 0);
+      setTotalQuestions(response.data.totalQuestions ?? 15);
       setAnswer("");
+      setIsFinished(false);
     } catch (error) {
       console.error("Start Mock Interview Error:", error);
 
@@ -62,7 +65,7 @@ const MockInterview = () => {
   };
 
   // =====================================
-  // SUBMIT ANSWER
+  // SUBMIT ANSWER + FETCH NEXT QUESTION
   // =====================================
 
   const submitAnswer = async () => {
@@ -74,17 +77,37 @@ const MockInterview = () => {
     setSubmitting(true);
 
     try {
-      const response = await api.put(
+      // 1. Save the current answer
+      const saveRes = await api.put(
         `/mock-interviews/${interview._id}/answer`,
         {
-          questionIndex: 0,
+          questionIndex,
           answer,
         },
       );
 
-      setInterview(response.data.interview);
+      setInterview(saveRes.data.interview);
 
-      alert("Answer submitted successfully");
+      // 2. Fetch the next question
+      const nextRes = await api.get(
+        `/mock-interviews/${interview._id}/next-question`,
+      );
+
+      if (nextRes.data.isComplete) {
+        // All questions done — mark interview complete automatically
+        const completeRes = await api.put(
+          `/mock-interviews/${interview._id}/complete`,
+        );
+
+        setInterview(completeRes.data.interview);
+        setIsFinished(true);
+      } else {
+        setInterview(nextRes.data.interview);
+        setCurrentQuestion(nextRes.data.currentQuestion);
+        setQuestionIndex(nextRes.data.questionIndex);
+        setTotalQuestions(nextRes.data.totalQuestions);
+        setAnswer("");
+      }
     } catch (error) {
       console.error("Submit Answer Error:", error);
 
@@ -95,7 +118,7 @@ const MockInterview = () => {
   };
 
   // =====================================
-  // COMPLETE INTERVIEW
+  // COMPLETE INTERVIEW (manual button)
   // =====================================
 
   const completeInterview = async () => {
@@ -105,8 +128,7 @@ const MockInterview = () => {
       );
 
       setInterview(response.data.interview);
-
-      alert("Mock interview completed successfully");
+      setIsFinished(true);
     } catch (error) {
       console.error("Complete Interview Error:", error);
 
@@ -219,8 +241,74 @@ const MockInterview = () => {
   }
 
   // =====================================
+  // COMPLETED SCREEN
+  // =====================================
+
+  if (isFinished) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-slate-900">
+              AI Mock Interview
+            </h1>
+
+            <p className="text-slate-500 mt-2">
+              {interview.role} • {interview.interviewType} •{" "}
+              {interview.difficulty}
+            </p>
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center">
+            <span className="bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-medium">
+              Completed
+            </span>
+
+            <h2 className="text-2xl font-semibold text-slate-900 mt-5">
+              Interview Completed!
+            </h2>
+
+            <p className="text-slate-500 mt-2">
+              You answered {interview.questions.length} question
+              {interview.questions.length !== 1 ? "s" : ""}. Great job!
+            </p>
+          </div>
+
+          {/* All Questions & Answers */}
+
+          <div className="bg-white border border-slate-200 rounded-2xl p-8 mt-6">
+            <h2 className="text-xl font-semibold">Interview Summary</h2>
+
+            <div className="mt-5 space-y-4">
+              {interview.questions.map((item, index) => (
+                <div key={index} className="bg-slate-50 rounded-xl p-5">
+                  <p className="font-medium text-slate-900">
+                    Q{index + 1}. {item.question}
+                  </p>
+
+                  {item.answer && (
+                    <div className="mt-3">
+                      <p className="text-sm text-slate-500">Your Answer</p>
+
+                      <p className="mt-1 text-slate-700">{item.answer}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =====================================
   // INTERVIEW SCREEN
   // =====================================
+
+  const progressPercent = Math.round(
+    ((questionIndex + 1) / totalQuestions) * 100,
+  );
 
   return (
     <div className="min-h-screen bg-slate-50 p-8">
@@ -246,12 +334,33 @@ const MockInterview = () => {
           </div>
         </div>
 
+        {/* Progress Bar */}
+
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 mb-6">
+          <div className="flex items-center justify-between text-sm mb-2">
+            <span className="text-slate-700">
+              Question {questionIndex + 1} of {totalQuestions}
+            </span>
+
+            <span className="text-blue-600 font-medium">
+              {progressPercent}%
+            </span>
+          </div>
+
+          <div className="w-full bg-slate-200 rounded-full h-2">
+            <div
+              className="bg-blue-600 h-2 rounded-full transition-all"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+        </div>
+
         {/* Question */}
 
         <div className="bg-white border border-slate-200 rounded-2xl p-8">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-blue-600">
-              Question 1
+              Question {questionIndex + 1}
             </span>
 
             <span className="text-sm text-slate-500">
@@ -287,7 +396,11 @@ const MockInterview = () => {
               disabled={submitting}
               className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-6 py-3 rounded-lg font-medium"
             >
-              {submitting ? "Submitting..." : "Submit Answer"}
+              {submitting
+                ? "Submitting..."
+                : questionIndex + 1 >= totalQuestions
+                  ? "Submit Final Answer"
+                  : "Submit & Next Question"}
             </button>
 
             <button
