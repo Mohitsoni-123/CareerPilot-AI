@@ -231,9 +231,14 @@ const Dashboard = () => {
               backend development and system design knowledge.
             </p>
 
-            <button className="mt-6 bg-blue-600 hover:bg-blue-700 px-5 py-3 rounded-lg">
-              View Career Roadmap
-            </button>
+            <button
+  onClick={() => {
+    window.location.href = "/career-roadmap";
+  }}
+  className="mt-6 bg-blue-600 hover:bg-blue-700 px-5 py-3 rounded-lg"
+>
+  View Career Roadmap
+</button>
           </div>
         </div>
 
