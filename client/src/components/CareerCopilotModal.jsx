@@ -198,19 +198,48 @@ const CareerCopilotModal = () => {
 
   // Conversational Client-Side Intelligence
   const generateLocalSmartAdvice = (query, userName) => {
-    const q = query.toLowerCase();
+    const q = query.toLowerCase().trim();
     const name = userName ? userName.split(" ")[0] : "friend";
+
+    // 1. Greetings
+    if (
+      /^(hi|hello|hey|yo|namaste|hola|greetings|good morning|good afternoon|good evening)\b/i.test(q) ||
+      q === "hi" || q === "hello" || q === "hey"
+    ) {
+      return `Hey ${name}! 👋 Great to connect with you. I'm your **CareerPilot AI Senior Tech Mentor**!\n\nI can help you with:\n• 🎙️ **Mock Interviews**: Answering behavioral (STAR method) and technical interview questions\n• 📄 **Resume ATS Polish**: Crafting high-impact bullet points with the Google XYZ formula\n• 💰 **Salary Negotiation**: Tactics and scripts to maximize your compensation\n• 🗺️ **Career Roadmaps**: Guidance on MERN, Frontend, Backend, or DevOps stacks\n\nWhat are you currently preparing for? Tell me what you'd like to work on!`;
+    }
+
+    // 2. Kaise ho / How are you
+    if (
+      q.includes("how are you") ||
+      q.includes("kaise ho") ||
+      q.includes("kya haal") ||
+      q.includes("kaisa hai")
+    ) {
+      return `Main bilkul badhiya hoon, ${name}! 😊 Thank you for asking. I'm energized and ready to help you crack your upcoming tech interviews.\n\nAre you currently prepping for a technical coding round, HR/behavioral interview, or updating your resume for new applications?`;
+    }
+
+    // 3. Who are you / Features
+    if (
+      q.includes("who are you") ||
+      q.includes("what can you do") ||
+      q.includes("kya kar sakte ho") ||
+      q.includes("features") ||
+      q.includes("help me")
+    ) {
+      return `I am **CareerPilot Copilot** 🚀, your autonomous AI Career Engineering Mentor built into this platform.\n\nHere is how I can assist you right now:\n1. **Interview Practice**: Give me a question like *"Tell me about yourself"* or *"Explain useEffect"*, and I'll evaluate your response.\n2. **Resume Optimizer**: Paste any experience bullet, and I'll rewrite it with measurable business impact.\n3. **Salary & Offer Negotiation**: Ask for negotiation scripts when an HR gives you a lowball offer.\n4. **Platform Navigation**: I can guide you through our **ATS Resume Analyzer**, **Voice Mock Interviews**, **Skill Gap Matrix**, and **Kanban Application CRM**.\n\nTry asking me: *"How should I answer 'What is your greatest weakness'?"* or *"Explain Event Loop in Node.js"!*`;
+    }
 
     if (q.includes("tell me about yourself") || q.includes("intro") || q.includes("introduce")) {
       return `Here is a bulletproof 90-second formula for **"Tell Me About Yourself"**:\n\n1. **The Present (30s)**: "I'm a software developer with hands-on expertise in full-stack web applications using React, Node.js, and modern cloud databases."\n2. **The Past (40s)**: "Recently, I engineered scalable projects like an AI career platform and RESTful microservices, focusing on clean architecture, low latency, and secure JWT authentication."\n3. **The Future (20s)**: "I'm excited about this opportunity because your team values innovation and code quality, where I can make an immediate impact."\n\n💡 *Pro-Tip*: Never recite your whole resume—focus purely on impact and why you fit this exact role!`;
     }
 
-    if (q.includes("star") || q.includes("behavioral") || q.includes("conflict")) {
+    if (q.includes("star method") || q.includes("behavioral") || q.includes("conflict")) {
       return `### ⭐ The STAR Method Master Template:\n\n• **S - Situation**: *"In our capstone project, our backend response times were lagging over 1.5 seconds under concurrent user test loads."*\n• **T - Task**: *"I was responsible for analyzing API bottlenecks and cutting latency under 300ms before our demonstration deadline."*\n• **A - Action**: *"I profiled the MongoDB aggregation pipeline, added compound indexes, and integrated in-memory caching."*\n• **R - Result**: *"This slashed query times by 78% to 180ms and enabled seamless concurrency with zero server crashes."*\n\n👉 Spend 70% of your time on **Action** and **Result**!`;
     }
 
     if (q.includes("salary") || q.includes("negotiat") || q.includes("paisa") || q.includes("package")) {
-      return `### 💰 Tactical Salary Negotiation Rules:\n\n1. **Never Anchor First**: If asked your expected CTC, say: *"I'm primarily interested in finding the best technical and team fit. What is the budgeted salary band for someone with my skill set?"*\n2. **Use Industry Benchmarks**: Check *Levels.fyi* and *Glassdoor* for the exact role and location tier.\n3. **Negotiate Beyond Base**: If base pay is strict, ask for sign-on bonus, early 6-month performance review, or remote allowances.\n4. **Counter Professionally**: *"Based on my experience architecting full-stack solutions and the current market average for this role, I was targeting closer to $X. Can we bridge this gap?"*`;
+      return `### 💰 Tactical Salary Negotiation Rules:\n\n1. **Never Anchor First**: If asked your expected CTC, say: *"I'm primarily interested in finding the best technical and team fit. What is the budgeted salary band for someone with my skill set?"*\n2. **Use Industry Benchmarks**: Check *Levels.fyi* and *Glassdoor* for the exact role and location tier.\n3. **Negotiate Beyond Base**: If base pay is strict, ask for sign-on bonus, early 6-month performance review, or remote allowances.\n4. **Counter Professionally**: *"Based on my experience architecting full-stack solutions and the current market average for this role, I was targeting closer to ₹X. Can we bridge this gap?"*`;
     }
 
     if (q.includes("bullet") || q.includes("resume") || q.includes("cv")) {
@@ -225,8 +254,20 @@ const CareerCopilotModal = () => {
       return `### 🗺️ MERN Stack Job-Ready Roadmap for ${name}:\n\n1. **Core Foundations**: Modern ES6+ JavaScript (Closures, Event Loop, Promises, Async/Await).\n2. **Frontend Mastery**: React 19, Hooks (useEffect, useMemo, custom hooks), Redux Toolkit, Tailwind CSS.\n3. **Backend & Architecture**: Node.js, Express 5, RESTful API Design, JWT Auth, Middleware.\n4. **Databases**: MongoDB Aggregations, indexing, Mongoose schemas, and basic PostgreSQL queries.\n5. **DevOps & Polish**: Docker basics, Git branch workflows, CI/CD with GitHub Actions, and deployment on Render/Vercel.`;
     }
 
+    // Hindi / Hinglish queries
+    if (
+      q.includes("kya") ||
+      q.includes("kaise") ||
+      q.includes("batao") ||
+      q.includes("samjhao") ||
+      q.includes("padhna") ||
+      q.includes("kare")
+    ) {
+      return `Haan bilkul ${name}! 🙏 Main aapki poori help karunga.\n\nCareerPilot par aap:\n1. **Mock Interview**: Voice se interview questions answer karke score check kar sakte ho.\n2. **Resume ATS Check**: Resume upload karke check kar sakte ho ki kya missing hai.\n3. **Career Roadmap**: Apne target role ke liye step-by-step phases follow kar sakte ho.\n\nAapko specific kisme help chahiye—interview questions, resume bullet points, ya kisi technical concept mein?`;
+    }
+
     // Default friendly conversational reply
-    return `Great question, ${name}! 👍\n\nTo give you the most targeted advice:\n1. **Are you preparing for a technical round, HR round, or resume review?**\n2. Feel free to paste any question, job description, or resume bullet point right here, and I will critique and optimize it for you!\n\nLet me know what you want to tackle next! 🚀`;
+    return `That's a great question, ${name}! 👍\n\nTo give you the most targeted advice:\n1. Are you preparing for a technical round, HR round, or resume review?\n2. Feel free to paste any question, job description, or resume bullet point right here, and I will critique and optimize it for you!\n\nLet me know what you want to tackle next! 🚀`;
   };
 
   return (

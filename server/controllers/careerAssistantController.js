@@ -14,7 +14,10 @@ export const chatWithCareerAssistant = async (req, res) => {
       });
     }
 
+    const trimmedMessage = message.trim();
+
     // Optional user authentication extraction
+    let candidateName = "Candidate";
     let userContext = "";
     try {
       let token = null;
@@ -29,7 +32,8 @@ export const chatWithCareerAssistant = async (req, res) => {
           const resume = await Resume.findOne({ user: decoded.userId }).sort({ createdAt: -1 });
 
           if (user) {
-            userContext = `Candidate Name: ${user.name || "Candidate"}
+            candidateName = user.name || "Candidate";
+            userContext = `Candidate Name: ${candidateName}
 Skills: ${(user.skills || []).join(", ") || "Fullstack Software Engineering"}
 Latest ATS Resume Score: ${resume?.atsScore ? resume.atsScore + "%" : "Not yet analyzed"}`;
           }
@@ -39,28 +43,25 @@ Latest ATS Resume Score: ${resume?.atsScore ? resume.atsScore + "%" : "Not yet a
       // Non-blocking: continue as guest
     }
 
-    const conversationHistory = history
-      .slice(-6)
-      .map((msg) => `${msg.role === "user" ? "Candidate" : "CareerPilot Assistant"}: ${msg.content}`)
-      .join("\n");
+    // Prepare multi-turn chat messages
+    const chatMessages = [
+      ...history.slice(-6).map((msg) => ({
+        role: msg.role === "assistant" ? "assistant" : "user",
+        content: msg.content,
+      })),
+      { role: "user", content: trimmedMessage },
+    ];
 
-    const prompt = `
-Context about candidate:
-${userContext || "Candidate preparing for software engineering & tech industry roles."}
-
-Conversation History:
-${conversationHistory}
-
-Candidate's current message:
-"${message}"
-
-Provide a structured, encouraging, highly professional, and actionable response. Focus on practical interview and career strategies.
-`;
+    const systemPrompt = `You are CareerPilot Copilot, an empathetic, encouraging, and senior AI Tech Career Mentor & Interview Coach.
+Candidate Profile: ${userContext || "Candidate preparing for software engineering & tech roles."}
+Talk in a natural, warm, and highly practical conversational tone. If the user speaks in Hindi or Hinglish, reply with friendly Hinglish. If they ask a technical question, give clean explanations with code snippets where helpful. If they greet you, greet them warmly and ask how you can help them prepare.`;
 
     const reply = await generateAIResponse({
-      prompt,
-      systemPrompt: "You are CareerPilot Copilot, an elite AI Career Advisor, Mock Interview Mentor, and Tech Recruiter. Always give encouraging, pragmatic, and high-value professional advice.",
-      temperature: 0.5,
+      prompt: `Candidate's current message: "${trimmedMessage}"`,
+      userQuery: trimmedMessage,
+      chatMessages,
+      systemPrompt,
+      temperature: 0.6,
       jsonMode: false,
     });
 
@@ -73,7 +74,7 @@ Provide a structured, encouraging, highly professional, and actionable response.
     res.status(200).json({
       success: true,
       reply:
-        "Hello! I am your CareerPilot Copilot 🚀. I am ready to help you optimize your resume, prepare for mock interviews, or negotiate your offer. What specific area are you working on today?",
+        "Hey! 👋 I'm your CareerPilot AI Copilot. How is your interview preparation or job search going? Feel free to ask me anything about technical rounds, resume ATS optimization, or salary negotiation!",
     });
   }
 };
