@@ -1,38 +1,29 @@
-import User from "../models/User.js";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-
-// Generate JWT Token
-const generateToken = (userId) => {
-  return jwt.sign(
-    { userId },
-    process.env.JWT_SECRET,
-    {
-      expiresIn: "7d",
-    }
-  );
-};
+import User from "../models/User.js";
+import generateToken from "../utils/generateToken.js";
 
 // Register User
 export const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    // Check required fields
+    // Check fields
     if (!name || !email || !password) {
       return res.status(400).json({
         success: false,
-        message: "Please provide name, email and password",
+        message: "Please fill all fields",
       });
     }
 
-    // Check existing user
-    const existingUser = await User.findOne({ email });
+    const normalizedEmail = email.toLowerCase().trim();
 
-    if (existingUser) {
+    // Check if user already exists
+    const userExists = await User.findOne({ email: normalizedEmail });
+
+    if (userExists) {
       return res.status(400).json({
         success: false,
-        message: "User already exists",
+        message: "User already exists with this email",
       });
     }
 
@@ -41,9 +32,11 @@ export const registerUser = async (req, res) => {
 
     // Create user
     const user = await User.create({
-      name,
-      email,
+      name: name.trim(),
+      email: normalizedEmail,
       password: hashedPassword,
+      skills: ["React", "JavaScript", "Node.js", "Express", "MongoDB", "Git"],
+      education: ["B.Tech Computer Science & Engineering"],
     });
 
     // Generate token
@@ -58,6 +51,7 @@ export const registerUser = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        skills: user.skills,
       },
     });
   } catch (error) {
@@ -65,7 +59,7 @@ export const registerUser = async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: "Server error",
+      message: "Server error during registration",
     });
   }
 };
@@ -83,13 +77,30 @@ export const loginUser = async (req, res) => {
       });
     }
 
+    const normalizedEmail = email.toLowerCase().trim();
+
     // Find user
-    const user = await User.findOne({ email });
+    let user = await User.findOne({ email: normalizedEmail });
+
+    // Auto-create demo user if attempting demo login and user does not exist in DB yet
+    if (!user && normalizedEmail === "demo@careerpilot.ai" && password === "password123") {
+      const hashedPassword = await bcrypt.hash("password123", 10);
+      user = await User.create({
+        name: "Demo Candidate",
+        email: "demo@careerpilot.ai",
+        password: hashedPassword,
+        skills: ["React", "Node.js", "TypeScript", "MongoDB", "Express", "Tailwind CSS", "Git"],
+        education: ["B.Tech Computer Science & Engineering (2022-2026)"],
+        experience: ["Full Stack Web Development Intern - Tech Labs (6 Mos)"],
+        projects: ["CareerPilot AI - Autonomous Career Platform"],
+        certifications: ["Meta Front-End Developer Specialization"],
+      });
+    }
 
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: "Invalid email or password",
+        message: "Account not found with this email. Please click 'Register' below to create your account first!",
       });
     }
 
@@ -102,7 +113,7 @@ export const loginUser = async (req, res) => {
     if (!isPasswordCorrect) {
       return res.status(401).json({
         success: false,
-        message: "Invalid email or password",
+        message: "Incorrect password. Please verify your password or reset it.",
       });
     }
 
@@ -118,6 +129,11 @@ export const loginUser = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        skills: user.skills,
+        education: user.education,
+        experience: user.experience,
+        projects: user.projects,
+        profileImage: user.profileImage,
       },
     });
   } catch (error) {
@@ -125,7 +141,31 @@ export const loginUser = async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: "Server error",
+      message: "Server error during login",
+    });
+  }
+};
+
+// Get current user profile
+export const getMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select("-password");
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch user",
     });
   }
 };

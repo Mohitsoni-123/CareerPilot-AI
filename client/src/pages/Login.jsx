@@ -49,10 +49,13 @@ const Login = () => {
       navigate("/dashboard");
 
     } catch (error) {
-      setError(
+      const msg =
         error.response?.data?.message ||
-          "Invalid email or password"
-      );
+        (error.message === "Network Error"
+          ? "Server is waking up on Render. Please wait 15-20 seconds and click Login again!"
+          : error.message) ||
+        "Invalid email or password";
+      setError(msg);
     } finally {
       setLoading(false);
     }

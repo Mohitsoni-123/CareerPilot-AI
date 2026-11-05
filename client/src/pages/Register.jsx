@@ -61,10 +61,13 @@ const Register = () => {
         navigate("/login");
       }
     } catch (error) {
-      setError(
+      const msg =
         error.response?.data?.message ||
-          "Registration failed. Please check your details."
-      );
+        (error.message === "Network Error"
+          ? "Server is waking up on Render. Please wait 15-20 seconds and click Create Account again!"
+          : error.message) ||
+        "Registration failed. Please check your details.";
+      setError(msg);
     } finally {
       setLoading(false);
     }
