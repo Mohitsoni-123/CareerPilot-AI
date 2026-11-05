@@ -32,6 +32,7 @@ connectDB();
 app.use(cors());
 app.use(express.json());
 
+// Mount with /api prefix (standard REST endpoints)
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/resumes", resumeRoutes);
@@ -44,6 +45,20 @@ app.use("/api/skill-gap", skillGapRoutes);
 app.use("/api/career-roadmap", careerRoadmapRoutes);
 app.use("/api/career-insight", careerInsightRoutes);
 app.use("/api/career-assistant", careerAssistantRoutes);
+
+// Also mount without /api prefix as safety net for cloud proxies
+app.use("/auth", authRoutes);
+app.use("/users", userRoutes);
+app.use("/resumes", resumeRoutes);
+app.use("/jobs", jobRoutes);
+app.use("/applications", applicationRoutes);
+app.use("/saved-jobs", savedJobRoutes);
+app.use("/interview-prep", interviewPrepRoutes);
+app.use("/mock-interviews", mockInterviewRoutes);
+app.use("/skill-gap", skillGapRoutes);
+app.use("/career-roadmap", careerRoadmapRoutes);
+app.use("/career-insight", careerInsightRoutes);
+app.use("/career-assistant", careerAssistantRoutes);
 
 app.get("/", (req, res) => {
   res.json({

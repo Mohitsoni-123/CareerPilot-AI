@@ -1,14 +1,24 @@
 import axios from "axios";
 
-// Automatically uses live Render backend in production, or localhost in development
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD
+// Normalize API URL for production and development
+let rawBase = import.meta.env.VITE_API_URL;
+
+if (!rawBase) {
+  rawBase = import.meta.env.PROD
     ? "https://careerpilot-backend-l02p.onrender.com/api"
-    : "http://localhost:5000/api");
+    : "http://localhost:5000/api";
+}
+
+// Strip any trailing slashes
+rawBase = rawBase.replace(/\/+$/, "");
+
+// Ensure it points to the /api namespace
+if (!rawBase.endsWith("/api")) {
+  rawBase = `${rawBase}/api`;
+}
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: rawBase,
 });
 
 // Automatically attach JWT token
