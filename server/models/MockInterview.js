@@ -27,17 +27,13 @@ const mockInterviewSchema = new mongoose.Schema(
 
     difficulty: {
       type: String,
-      enum: [
-        "Easy",
-        "Medium",
-        "Hard",
-      ],
+      enum: ["Easy", "Medium", "Hard"],
       default: "Medium",
     },
 
     totalQuestions: {
       type: Number,
-      default: 15,
+      default: 5,
     },
 
     questions: [
@@ -57,19 +53,45 @@ const mockInterviewSchema = new mongoose.Schema(
           default: 0,
         },
 
+        communicationScore: {
+          type: Number,
+          default: 0,
+        },
+
+        technicalAccuracy: {
+          type: Number,
+          default: 0,
+        },
+
         feedback: {
           type: String,
           default: "",
+        },
+
+        strengths: {
+          type: String,
+          default: "",
+        },
+
+        improvements: {
+          type: String,
+          default: "",
+        },
+
+        modelAnswer: {
+          type: String,
+          default: "",
+        },
+
+        answeredAt: {
+          type: Date,
         },
       },
     ],
 
     status: {
       type: String,
-      enum: [
-        "In Progress",
-        "Completed",
-      ],
+      enum: ["In Progress", "Completed"],
       default: "In Progress",
     },
 
@@ -77,15 +99,47 @@ const mockInterviewSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+
+    technicalScore: {
+      type: Number,
+      default: 0,
+    },
+
+    communicationScore: {
+      type: Number,
+      default: 0,
+    },
+
+    confidenceScore: {
+      type: Number,
+      default: 0,
+    },
+
+    summary: {
+      type: String,
+      default: "",
+    },
+
+    topStrengths: {
+      type: [String],
+      default: [],
+    },
+
+    areasForImprovement: {
+      type: [String],
+      default: [],
+    },
+
+    recommendedActionItems: {
+      type: [String],
+      default: [],
+    },
   },
   {
     timestamps: true,
   }
 );
 
-const MockInterview = mongoose.model(
-  "MockInterview",
-  mockInterviewSchema
-);
+const MockInterview = mongoose.model("MockInterview", mockInterviewSchema);
 
 export default MockInterview;

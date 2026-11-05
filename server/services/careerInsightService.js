@@ -1,96 +1,63 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+import { generateAIResponse } from "./aiGateway.js";
 
 export const generateCareerInsight = async ({
   profile,
   applications = [],
   savedJobs = [],
 }) => {
-  const model = genAI.getGenerativeModel({
-    model: "gemini-2.0-flash",
-  });
-
   const prompt = `
-You are an expert AI career advisor.
-
-Analyze the candidate's profile, job applications, and saved jobs.
+You are an expert executive AI career advisor.
+Analyze the candidate's profile, job applications, and saved jobs to provide strategic career guidance.
 
 CANDIDATE PROFILE:
+Name: ${profile?.name || "Candidate"}
+Skills: ${JSON.stringify(profile?.skills || [])}
+Education: ${JSON.stringify(profile?.education || [])}
+Experience: ${JSON.stringify(profile?.experience || [])}
+Projects: ${JSON.stringify(profile?.projects || [])}
+Certifications: ${JSON.stringify(profile?.certifications || [])}
 
-Name:
-${profile?.name || "Not provided"}
-
-Skills:
-${JSON.stringify(profile?.skills || [])}
-
-Education:
-${JSON.stringify(profile?.education || [])}
-
-Experience:
-${JSON.stringify(profile?.experience || [])}
-
-Projects:
-${JSON.stringify(profile?.projects || [])}
-
-Certifications:
-${JSON.stringify(profile?.certifications || [])}
-
-
-APPLICATIONS:
-
+APPLICATIONS (${applications.length}):
 ${JSON.stringify(
-  applications.map((application) => ({
-    jobTitle: application.job?.title,
-    company: application.job?.company,
-    status: application.status,
-    skills: application.job?.skills,
-  })),
+  applications.map((app) => ({
+    title: app.job?.title,
+    company: app.job?.company,
+    status: app.status,
+  }))
 )}
 
-
-SAVED JOBS:
-
+SAVED JOBS (${savedJobs.length}):
 ${JSON.stringify(
-  savedJobs.map((savedJob) => ({
-    jobTitle: savedJob.job?.title,
-    company: savedJob.job?.company,
-    skills: savedJob.job?.skills,
-  })),
+  savedJobs.map((s) => ({
+    title: s.job?.title,
+    company: s.job?.company,
+    skills: s.job?.skills,
+  }))
 )}
 
-
-Return ONLY valid JSON.
-
-Use exactly this structure:
-
+Return ONLY valid JSON with this exact structure:
 {
-  "careerSummary": "",
-  "recommendedSkills": [],
-  "targetRoles": [],
-  "interviewTips": [],
-  "nextSteps": []
+  "careerSummary": "Concise 2-3 sentence personalized career trajectory analysis.",
+  "marketCompetitivenessScore": 82,
+  "recommendedSkills": ["skill 1", "skill 2", "skill 3", "skill 4"],
+  "targetRoles": ["role 1", "role 2", "role 3"],
+  "interviewTips": [
+    "Actionable interview tip 1",
+    "Actionable interview tip 2",
+    "Actionable interview tip 3"
+  ],
+  "nextSteps": [
+    "Clear actionable next step 1",
+    "Clear actionable next step 2",
+    "Clear actionable next step 3"
+  ]
 }
-
-Rules:
-
-1. careerSummary should be a concise personalized career analysis.
-2. recommendedSkills should contain 3-5 skills the candidate should improve.
-3. targetRoles should contain 3-5 suitable job roles.
-4. interviewTips should contain 3-5 actionable interview preparation tips.
-5. nextSteps should contain 3-5 actionable career steps.
-6. Recommendations must be based on the candidate's actual profile and job data.
-7. Do not include markdown.
 `;
 
-  const result = await model.generateContent(prompt);
-
-  const response = result.response.text();
-
-  const cleanedResponse = response
-    .replace(/```json/g, "")
-    .replace(/```/g, "")
-    .trim();
-
-  return JSON.parse(cleanedResponse);
+  return await generateAIResponse({
+    prompt,
+    systemPrompt: "You are an executive talent strategist and career counselor.",
+    jsonMode: true,
+    temperature: 0.3,
+  });
 };

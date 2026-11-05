@@ -1,0 +1,22 @@
+{
+  "name": "careerpilot-ai",
+  "version": "2.0.0",
+  "description": "Autonomous AI-Powered Career Engineering Platform",
+  "scripts": {
+    "server": "cd server && npm run dev",
+    "client": "cd client && npm run dev",
+    "start": "cd server && npm start",
+    "build": "cd client && npm run build"
+  },
+  "keywords": [
+    "career",
+    "ai",
+    "mock-interview",
+    "ats-resume",
+    "mern",
+    "fullstack"
+  ],
+  "author": "",
+  "license": "ISC"
+}
+
