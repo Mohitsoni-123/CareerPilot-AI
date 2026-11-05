@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { login } from "../redux/slices/authSlice";
 import {
   User,
   Mail,
@@ -13,6 +15,7 @@ import api from "../services/api";
 
 const Register = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const [showPassword, setShowPassword] =
     useState(false);
@@ -41,19 +44,26 @@ const Register = () => {
     setLoading(true);
 
     try {
-      await api.post(
+      const response = await api.post(
         "/auth/register",
         formData
       );
 
-      alert("Registration Successful!");
-
-      navigate("/login");
-
+      if (response.data.token) {
+        dispatch(
+          login({
+            token: response.data.token,
+            user: response.data.user,
+          })
+        );
+        navigate("/dashboard");
+      } else {
+        navigate("/login");
+      }
     } catch (error) {
       setError(
         error.response?.data?.message ||
-          "Something went wrong"
+          "Registration failed. Please check your details."
       );
     } finally {
       setLoading(false);

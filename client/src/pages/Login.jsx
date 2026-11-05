@@ -115,10 +115,26 @@ const Login = () => {
           </div>
 
           {error && (
-            <div className="bg-red-100 border border-red-300 text-red-700 p-3 rounded-lg mt-6">
+            <div className="bg-red-100 border border-red-300 text-red-700 p-3 rounded-lg mt-6 text-sm">
               {error}
             </div>
           )}
+
+          <div className="flex justify-between items-center mt-4">
+            <span className="text-xs text-slate-500">Quick Testing:</span>
+            <button
+              type="button"
+              onClick={() =>
+                setFormData({
+                  email: "demo@careerpilot.ai",
+                  password: "password123",
+                })
+              }
+              className="text-xs text-blue-600 hover:text-blue-800 font-bold bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 transition"
+            >
+              Autofill Demo Login
+            </button>
+          </div>
 
           <form
             onSubmit={handleSubmit}

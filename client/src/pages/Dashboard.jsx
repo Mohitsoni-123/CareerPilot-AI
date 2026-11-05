@@ -166,11 +166,8 @@ const Dashboard = () => {
       : "Not Started";
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <Sidebar />
-
-      <main className="flex-1 p-6 md:p-10 space-y-8 overflow-y-auto">
-        {/* Welcome Header */}
+    <div className="p-6 md:p-10 space-y-8">
+      {/* Welcome Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
@@ -489,8 +486,7 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
-      </main>
-    </div>
+      </div>
   );
 };
 

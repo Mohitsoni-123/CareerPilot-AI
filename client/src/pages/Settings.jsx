@@ -6,12 +6,14 @@ import { useNavigate } from "react-router-dom";
 
 import api from "../services/api";
 import { logout } from "../redux/slices/authSlice";
+import { useTheme } from "../context/ThemeContext";
 
 const Settings = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const { user } = useSelector((state) => state.auth);
+  const { isDark, toggleTheme } = useTheme();
 
   // Account
   const [name, setName] = useState("");
@@ -193,7 +195,7 @@ const Settings = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
+    <div className="p-6 md:p-10 space-y-8">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
 
@@ -442,19 +444,20 @@ const Settings = () => {
                 <h3 className="font-medium text-slate-900">Dark Mode</h3>
 
                 <p className="text-sm text-slate-500 mt-1">
-                  Enable dark mode for the application.
+                  Enable high-contrast obsidian dark theme for the entire application.
                 </p>
               </div>
 
               <button
-                onClick={() => setDarkMode(!darkMode)}
+                type="button"
+                onClick={toggleTheme}
                 className={`relative w-12 h-6 rounded-full transition ${
-                  darkMode ? "bg-blue-600" : "bg-slate-300"
+                  isDark ? "bg-blue-600" : "bg-slate-300"
                 }`}
               >
                 <span
                   className={`absolute top-1 w-4 h-4 bg-white rounded-full transition ${
-                    darkMode ? "right-1" : "left-1"
+                    isDark ? "right-1" : "left-1"
                   }`}
                 />
               </button>

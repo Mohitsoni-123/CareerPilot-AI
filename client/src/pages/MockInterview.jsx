@@ -259,7 +259,7 @@ const MockInterview = () => {
   // =====================================
   if (!interview) {
     return (
-      <div className="min-h-screen bg-slate-50 p-6 md:p-10">
+      <div className="p-6 md:p-10 space-y-8">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="mb-8">
@@ -399,7 +399,7 @@ const MockInterview = () => {
     const confidence = interview.confidenceScore || overall;
 
     return (
-      <div className="min-h-screen bg-slate-50 p-6 md:p-10">
+      <div className="p-6 md:p-10 space-y-8">
         <div className="max-w-4xl mx-auto space-y-8">
           {/* Top Banner */}
           <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-blue-950 text-white rounded-3xl p-8 md:p-10 shadow-xl relative overflow-hidden">
@@ -690,7 +690,7 @@ const MockInterview = () => {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 md:p-10">
+    <div className="p-6 md:p-10 space-y-8">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   BookOpen,
   Code,
@@ -10,754 +10,368 @@ import {
   ChevronLeft,
   ChevronRight,
   RotateCcw,
+  Search,
+  Sparkles,
+  Eye,
+  EyeOff,
+  Award,
+  Layers,
+  ArrowRight,
 } from "lucide-react";
-
 import api from "../services/api";
 
-const InterviewPreparation = () => {
-  // ==========================================
-  // SELECTION STATES
-  // ==========================================
+const ROLES = [
+  "Full Stack Developer",
+  "Frontend Developer",
+  "Backend Developer",
+  "Software Developer",
+  "Data Analyst",
+];
 
-  const [selectedRole, setSelectedRole] =
-    useState("");
+const INTERVIEW_TYPES = [
+  "Technical Interview",
+  "HR Interview",
+  "Behavioral Interview",
+];
 
-  const [selectedType, setSelectedType] =
-    useState("");
+const TOPICS = [
+  { name: "JavaScript", icon: Code },
+  { name: "React.js", icon: Globe },
+  { name: "Node.js", icon: Code },
+  { name: "MongoDB", icon: Database },
+  { name: "DSA", icon: Brain },
+  { name: "DBMS", icon: Database },
+  { name: "OOPs", icon: BookOpen },
+  { name: "HR Questions", icon: Users },
+];
 
-  const [selectedTopic, setSelectedTopic] =
-    useState("");
+const InterviewPrep = () => {
+  const [selectedRole, setSelectedRole] = useState("Full Stack Developer");
+  const [selectedType, setSelectedType] = useState("Technical Interview");
+  const [selectedTopic, setSelectedTopic] = useState("JavaScript");
 
+  const [questions, setQuestions] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeView, setActiveView] = useState("cards"); // "cards" (flashcard) or "list" (accordion)
 
-  // ==========================================
-  // INTERVIEW STATES
-  // ==========================================
+  // Flashcard mode state
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [showAnswer, setShowAnswer] = useState(false);
+  const [bookmarked, setBookmarked] = useState([]);
 
-  const [questions, setQuestions] =
-    useState([]);
-
-  const [currentQuestion, setCurrentQuestion] =
-    useState(0);
-
-  const [showAnswer, setShowAnswer] =
-    useState(false);
-
-  const [loading, setLoading] =
-    useState(false);
-
-  const [started, setStarted] =
-    useState(false);
-
-
-  // ==========================================
-  // ROLES
-  // ==========================================
-
-  const roles = [
-    "Full Stack Developer",
-    "Frontend Developer",
-    "Backend Developer",
-    "Software Developer",
-    "Data Analyst",
-  ];
-
-
-  // ==========================================
-  // INTERVIEW TYPES
-  // ==========================================
-
-  const interviewTypes = [
-    "Technical Interview",
-    "HR Interview",
-    "Behavioral Interview",
-  ];
-
-
-  // ==========================================
-  // TOPICS
-  // ==========================================
-
-  const topics = [
-    {
-      name: "JavaScript",
-      icon: Code,
-    },
-    {
-      name: "React.js",
-      icon: Globe,
-    },
-    {
-      name: "Node.js",
-      icon: Code,
-    },
-    {
-      name: "MongoDB",
-      icon: Database,
-    },
-    {
-      name: "DSA",
-      icon: Brain,
-    },
-    {
-      name: "DBMS",
-      icon: Database,
-    },
-    {
-      name: "OOPs",
-      icon: BookOpen,
-    },
-    {
-      name: "HR Questions",
-      icon: Users,
-    },
-  ];
-
-
-  // ==========================================
-  // START PREPARATION
-  // ==========================================
-
-  const startPreparation = async () => {
-    if (!selectedRole) {
-      alert("Please select your target role");
-      return;
-    }
-
-    if (!selectedType) {
-      alert("Please select interview type");
-      return;
-    }
-
-    if (!selectedTopic) {
-      alert("Please select a topic");
-      return;
-    }
-
+  // Fetch Questions
+  const fetchQuestions = async () => {
     setLoading(true);
+    setShowAnswer(false);
+    setCurrentIndex(0);
 
     try {
-      const response = await api.get(
-        "/interview-prep/questions",
-        {
-          params: {
-            role: selectedRole,
-            interviewType: selectedType,
-            topic: selectedTopic,
-          },
-        }
-      );
+      const response = await api.get("/interview-prep/questions", {
+        params: {
+          role: selectedRole,
+          interviewType: selectedType,
+          topic: selectedTopic,
+        },
+      });
 
-      setQuestions(
-        response.data.questions || []
-      );
-
-      setCurrentQuestion(0);
-
-      setShowAnswer(false);
-
-      setStarted(true);
-
+      setQuestions(response.data.questions || []);
     } catch (error) {
-      console.error(
-        "Interview Preparation Error:",
-        error
-      );
-
-      alert(
-        error.response?.data?.message ||
-          "Failed to load interview questions"
-      );
-
+      console.error("Fetch Questions Error:", error);
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    fetchQuestions();
+  }, [selectedRole, selectedType, selectedTopic]);
 
-  // ==========================================
-  // NEXT QUESTION
-  // ==========================================
+  const filteredQuestions = questions.filter((q) =>
+    (q.question || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (q.answer || "").toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  const handleNextQuestion = () => {
-    if (
-      currentQuestion <
-      questions.length - 1
-    ) {
-      setCurrentQuestion(
-        currentQuestion + 1
-      );
+  const currentQ = filteredQuestions[currentIndex] || questions[0];
 
-      setShowAnswer(false);
-    }
+  const toggleBookmark = (idx) => {
+    setBookmarked((prev) =>
+      prev.includes(idx) ? prev.filter((i) => i !== idx) : [...prev, idx]
+    );
   };
-
-
-  // ==========================================
-  // PREVIOUS QUESTION
-  // ==========================================
-
-  const handlePreviousQuestion = () => {
-    if (currentQuestion > 0) {
-      setCurrentQuestion(
-        currentQuestion - 1
-      );
-
-      setShowAnswer(false);
-    }
-  };
-
-
-  // ==========================================
-  // RESTART PREPARATION
-  // ==========================================
-
-  const restartPreparation = () => {
-    setQuestions([]);
-
-    setCurrentQuestion(0);
-
-    setShowAnswer(false);
-
-    setStarted(false);
-  };
-
-
-  // ==========================================
-  // CURRENT QUESTION
-  // ==========================================
-
-  const currentQuestionData =
-    questions[currentQuestion];
-
-
-  // ==========================================
-  // PROGRESS
-  // ==========================================
-
-  const progress =
-    questions.length > 0
-      ? ((currentQuestion + 1) /
-          questions.length) *
-        100
-      : 0;
-
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
-
-      <div className="max-w-6xl mx-auto">
-
-
-        {/* ================================= */}
-        {/* HEADER */}
-        {/* ================================= */}
-
-        <div className="mb-8">
-
-          <h1 className="text-3xl font-bold text-slate-900">
-            Interview Preparation
-          </h1>
-
-          <p className="text-slate-500 mt-2">
-            Prepare for your next interview with
-            role-based questions and important
-            interview topics.
-          </p>
-
+    <div className="p-6 md:p-10 space-y-8 max-w-7xl mx-auto">
+      {/* Page Header */}
+      <div>
+        <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold uppercase tracking-wider mb-2">
+          <BookOpen className="w-3.5 h-3.5" /> Curated Question Bank & Flashcards
         </div>
-
-
-        {/* ================================= */}
-        {/* SELECTION SECTION */}
-        {/* ================================= */}
-
-        {!started && (
-
-          <>
-
-            {/* ROLE */}
-
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 mb-6">
-
-              <h2 className="text-xl font-semibold text-slate-900">
-                1. Select Your Target Role
-              </h2>
-
-              <p className="text-slate-500 mt-2">
-                Choose the role you are preparing for.
-              </p>
-
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-
-                {roles.map((role) => (
-
-                  <button
-                    key={role}
-                    onClick={() =>
-                      setSelectedRole(role)
-                    }
-                    className={`p-4 rounded-xl border text-left transition ${
-                      selectedRole === role
-                        ? "border-blue-600 bg-blue-50 text-blue-700"
-                        : "border-slate-200 hover:border-blue-400 hover:bg-slate-50"
-                    }`}
-                  >
-
-                    <p className="font-medium">
-                      {role}
-                    </p>
-
-                  </button>
-
-                ))}
-
-              </div>
-
-            </div>
-
-
-            {/* INTERVIEW TYPE */}
-
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 mb-6">
-
-              <h2 className="text-xl font-semibold text-slate-900">
-                2. Select Interview Type
-              </h2>
-
-              <p className="text-slate-500 mt-2">
-                Choose the type of interview you want
-                to prepare for.
-              </p>
-
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-
-                {interviewTypes.map((type) => (
-
-                  <button
-                    key={type}
-                    onClick={() =>
-                      setSelectedType(type)
-                    }
-                    className={`p-4 rounded-xl border text-left transition ${
-                      selectedType === type
-                        ? "border-blue-600 bg-blue-50 text-blue-700"
-                        : "border-slate-200 hover:border-blue-400 hover:bg-slate-50"
-                    }`}
-                  >
-
-                    <p className="font-medium">
-                      {type}
-                    </p>
-
-                  </button>
-
-                ))}
-
-              </div>
-
-            </div>
-
-
-            {/* TOPICS */}
-
-            <div className="bg-white border border-slate-200 rounded-2xl p-6">
-
-              <h2 className="text-xl font-semibold text-slate-900">
-                3. Choose a Preparation Topic
-              </h2>
-
-              <p className="text-slate-500 mt-2">
-                Select a topic to start practicing.
-              </p>
-
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-
-                {topics.map((topic) => {
-
-                  const Icon = topic.icon;
-
-                  return (
-
-                    <button
-                      key={topic.name}
-                      onClick={() =>
-                        setSelectedTopic(
-                          topic.name
-                        )
-                      }
-                      className={`p-5 rounded-xl border transition ${
-                        selectedTopic ===
-                        topic.name
-                          ? "border-blue-600 bg-blue-50 text-blue-700"
-                          : "border-slate-200 hover:border-blue-400 hover:bg-slate-50"
-                      }`}
-                    >
-
-                      <Icon
-                        size={28}
-                        className="mb-3"
-                      />
-
-                      <p className="font-medium">
-                        {topic.name}
-                      </p>
-
-                    </button>
-
-                  );
-                })}
-
-              </div>
-
-            </div>
-
-
-            {/* ================================= */}
-            {/* SELECTION SUMMARY */}
-            {/* ================================= */}
-
-            {(selectedRole ||
-              selectedType ||
-              selectedTopic) && (
-
-              <div className="mt-6 bg-blue-50 border border-blue-200 rounded-2xl p-6">
-
-                <h2 className="text-lg font-semibold text-blue-900">
-                  Your Preparation Plan
-                </h2>
-
-
-                <div className="mt-4 space-y-2">
-
-                  <p className="text-blue-800">
-                    <strong>
-                      Role:
-                    </strong>{" "}
-                    {selectedRole ||
-                      "Not selected"}
-                  </p>
-
-
-                  <p className="text-blue-800">
-                    <strong>
-                      Interview Type:
-                    </strong>{" "}
-                    {selectedType ||
-                      "Not selected"}
-                  </p>
-
-
-                  <p className="text-blue-800">
-                    <strong>
-                      Topic:
-                    </strong>{" "}
-                    {selectedTopic ||
-                      "Not selected"}
-                  </p>
-
-                </div>
-
-
-                {selectedRole &&
-                  selectedType &&
-                  selectedTopic && (
-
-                    <>
-
-                      <div className="mt-5 flex items-center gap-2 text-green-700">
-
-                        <CheckCircle size={20} />
-
-                        <span className="font-medium">
-                          Your preparation preferences
-                          are ready!
-                        </span>
-
-                      </div>
-
-
-                      {/* START BUTTON */}
-
-                      <button
-                        onClick={
-                          startPreparation
-                        }
-                        disabled={loading}
-                        className="mt-6 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white py-3 rounded-lg font-medium transition"
-                      >
-
-                        {loading
-                          ? "Loading Questions..."
-                          : "Start Preparation"}
-
-                      </button>
-
-                    </>
-
-                  )}
-
-              </div>
-
-            )}
-
-          </>
-
-        )}
-
-
-        {/* ================================= */}
-        {/* QUESTION SECTION */}
-        {/* ================================= */}
-
-        {started &&
-          currentQuestionData && (
-
-          <div className="space-y-6">
-
-
-            {/* INTERVIEW INFO */}
-
-            <div className="bg-white border border-slate-200 rounded-2xl p-6">
-
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-
-                <div>
-
-                  <p className="text-sm text-slate-500">
-                    Interview Preparation
-                  </p>
-
-                  <h2 className="text-xl font-bold text-slate-900 mt-1">
-                    {selectedRole}
-                  </h2>
-
-                </div>
-
-
-                <div className="text-right">
-
-                  <p className="text-sm text-slate-500">
-                    {selectedType}
-                  </p>
-
-                  <p className="font-semibold text-blue-600">
-                    {selectedTopic}
-                  </p>
-
-                </div>
-
-              </div>
-
-            </div>
-
-
-            {/* PROGRESS */}
-
-            <div className="bg-white border border-slate-200 rounded-2xl p-6">
-
-              <div className="flex justify-between mb-3">
-
-                <p className="text-sm font-medium text-slate-700">
-                  Question{" "}
-                  {currentQuestion + 1}{" "}
-                  of{" "}
-                  {questions.length}
-                </p>
-
-                <p className="text-sm font-medium text-blue-600">
-                  {Math.round(progress)}%
-                </p>
-
-              </div>
-
-
-              <div className="w-full bg-slate-200 rounded-full h-3">
-
-                <div
-                  className="bg-blue-600 h-3 rounded-full transition-all duration-300"
-                  style={{
-                    width: `${progress}%`,
-                  }}
-                />
-
-              </div>
-
-            </div>
-
-
-            {/* QUESTION CARD */}
-
-            <div className="bg-white border border-slate-200 rounded-2xl p-8">
-
-              <div className="flex items-center justify-between">
-
-                <span className="text-sm text-slate-500">
-                  Question{" "}
-                  {currentQuestion + 1}
-                </span>
-
-
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    currentQuestionData.difficulty ===
-                    "Easy"
-                      ? "bg-green-100 text-green-700"
-                      : currentQuestionData.difficulty ===
-                        "Medium"
-                      ? "bg-yellow-100 text-yellow-700"
-                      : "bg-red-100 text-red-700"
-                  }`}
-                >
-                  {currentQuestionData.difficulty}
-                </span>
-
-              </div>
-
-
-              {/* QUESTION */}
-
-              <h2 className="text-2xl font-bold text-slate-900 mt-6 leading-relaxed">
-
-                {currentQuestionData.question}
-
-              </h2>
-
-
-              {/* SHOW ANSWER */}
-
-              {!showAnswer && (
-
-                <button
-                  onClick={() =>
-                    setShowAnswer(true)
-                  }
-                  className="mt-8 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition"
-                >
-                  Show Answer
-                </button>
-
-              )}
-
-
-              {/* ANSWER */}
-
-              {showAnswer && (
-
-                <div className="mt-8 bg-green-50 border border-green-200 rounded-xl p-6">
-
-                  <h3 className="text-lg font-semibold text-green-800">
-
-                    Answer
-
-                  </h3>
-
-
-                  <p className="text-slate-700 mt-3 leading-relaxed">
-
-                    {currentQuestionData.answer}
-
-                  </p>
-
-                </div>
-
-              )}
-
-
-              {/* NAVIGATION */}
-
-              {showAnswer && (
-
-                <div className="mt-8 flex flex-col sm:flex-row gap-4">
-
-                  {/* PREVIOUS */}
-
-                  <button
-                    onClick={
-                      handlePreviousQuestion
-                    }
-                    disabled={
-                      currentQuestion === 0
-                    }
-                    className="flex items-center justify-center gap-2 px-6 py-3 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-                  >
-
-                    <ChevronLeft size={20} />
-
-                    Previous
-
-                  </button>
-
-
-                  {/* NEXT */}
-
-                  {currentQuestion <
-                  questions.length - 1 ? (
-
-                    <button
-                      onClick={
-                        handleNextQuestion
-                      }
-                      className="flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition sm:ml-auto"
-                    >
-
-                      Next Question
-
-                      <ChevronRight
-                        size={20}
-                      />
-
-                    </button>
-
-                  ) : (
-
-                    <button
-                      onClick={
-                        restartPreparation
-                      }
-                      className="flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition sm:ml-auto"
-                    >
-
-                      <RotateCcw
-                        size={20}
-                      />
-
-                      Finish Preparation
-
-                    </button>
-
-                  )}
-
-                </div>
-
-              )}
-
-            </div>
-
-
-            {/* BACK TO SELECTION */}
-
-            <button
-              onClick={
-                restartPreparation
-              }
-              className="text-slate-500 hover:text-blue-600 text-sm font-medium transition"
-            >
-
-              ← Choose Different Preparation
-
-            </button>
-
-          </div>
-
-        )}
-
+        <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
+          Technical & HR Interview Preparation
+        </h1>
+        <p className="text-slate-600 mt-2 text-sm md:text-base">
+          Master foundational to advanced interview concepts categorized by engineering role and subject.
+        </p>
       </div>
 
+      {/* Role & Interview Type Selectors */}
+      <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+        <div>
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">
+            1. Select Target Engineering Role:
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {ROLES.map((role) => (
+              <button
+                key={role}
+                onClick={() => setSelectedRole(role)}
+                className={`px-4 py-2 rounded-xl text-xs font-bold border transition ${
+                  selectedRole === role
+                    ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                    : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
+                }`}
+              >
+                {role}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">
+            2. Select Interview Category:
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {INTERVIEW_TYPES.map((type) => (
+              <button
+                key={type}
+                onClick={() => setSelectedType(type)}
+                className={`px-4 py-2 rounded-xl text-xs font-bold border transition ${
+                  selectedType === type
+                    ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                    : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
+                }`}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Topic Selection Chips */}
+      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+        {TOPICS.map((topic) => {
+          const Icon = topic.icon;
+          const isActive = selectedTopic === topic.name;
+
+          return (
+            <button
+              key={topic.name}
+              onClick={() => setSelectedTopic(topic.name)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold border shrink-0 transition ${
+                isActive
+                  ? "bg-slate-900 text-white border-slate-900 shadow-md"
+                  : "bg-white hover:bg-slate-100 text-slate-700 border-slate-200"
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              <span>{topic.name}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* View Toggle & Search Toolbar */}
+      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="relative w-full sm:w-80">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={`Search ${selectedTopic} questions...`}
+            className="w-full pl-10 pr-4 py-2 text-sm border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 focus:bg-white transition"
+          />
+        </div>
+
+        <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+          <span className="text-xs font-bold text-slate-500">
+            {filteredQuestions.length} Questions Loaded
+          </span>
+          <div className="flex bg-slate-100 p-1 rounded-xl">
+            <button
+              onClick={() => setActiveView("cards")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                activeView === "cards"
+                  ? "bg-white shadow text-blue-600"
+                  : "text-slate-600"
+              }`}
+            >
+              Flashcard Mode
+            </button>
+            <button
+              onClick={() => setActiveView("list")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                activeView === "list"
+                  ? "bg-white shadow text-blue-600"
+                  : "text-slate-600"
+              }`}
+            >
+              All Questions List
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ================================================= */}
+      {/* VIEW 1: INTERACTIVE FLASHCARD MODE */}
+      {/* ================================================= */}
+      {activeView === "cards" && (
+        <div className="space-y-6">
+          {loading ? (
+            <div className="bg-white rounded-3xl p-16 text-center border border-slate-200">
+              <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>
+              <p className="text-slate-500 text-sm">Loading interview questions...</p>
+            </div>
+          ) : currentQ ? (
+            <div className="bg-white rounded-3xl p-8 md:p-12 border border-slate-200 shadow-sm space-y-6 relative">
+              <div className="flex items-center justify-between">
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700">
+                  Question #{currentIndex + 1} of {filteredQuestions.length}
+                </span>
+
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                      currentQ.difficulty === "Easy"
+                        ? "bg-green-100 text-green-700"
+                        : currentQ.difficulty === "Hard"
+                        ? "bg-red-100 text-red-700"
+                        : "bg-amber-100 text-amber-700"
+                    }`}
+                  >
+                    {currentQ.difficulty || "Medium"} Level
+                  </span>
+                </div>
+              </div>
+
+              {/* Question Text */}
+              <h2 className="text-2xl md:text-3xl font-bold text-slate-900 leading-snug">
+                "{currentQ.question}"
+              </h2>
+
+              {/* Reveal Answer Box */}
+              <div className="pt-4">
+                <button
+                  onClick={() => setShowAnswer(!showAnswer)}
+                  className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-2 transition"
+                >
+                  {showAnswer ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showAnswer ? "Hide Ideal Answer" : "Reveal Ideal Candidate Answer"}
+                </button>
+
+                {showAnswer && (
+                  <div className="mt-4 p-6 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 text-slate-800 text-sm md:text-base leading-relaxed animate-in fade-in duration-200">
+                    <span className="text-xs font-bold uppercase tracking-wider text-blue-700 block mb-2 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5" /> High-Impact Model Answer:
+                    </span>
+                    {currentQ.answer}
+                  </div>
+                )}
+              </div>
+
+              {/* Card Controls */}
+              <div className="pt-6 border-t border-slate-100 flex items-center justify-between">
+                <button
+                  disabled={currentIndex === 0}
+                  onClick={() => {
+                    setCurrentIndex((prev) => Math.max(0, prev - 1));
+                    setShowAnswer(false);
+                  }}
+                  className="px-4 py-2 border rounded-xl text-xs font-bold disabled:opacity-40 flex items-center gap-1 hover:bg-slate-50 transition"
+                >
+                  <ChevronLeft className="w-4 h-4" /> Previous
+                </button>
+
+                <button
+                  onClick={() => {
+                    setCurrentIndex(0);
+                    setShowAnswer(false);
+                  }}
+                  className="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1 font-semibold"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" /> Restart Deck
+                </button>
+
+                <button
+                  disabled={currentIndex >= filteredQuestions.length - 1}
+                  onClick={() => {
+                    setCurrentIndex((prev) =>
+                      Math.min(filteredQuestions.length - 1, prev + 1)
+                    );
+                    setShowAnswer(false);
+                  }}
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold disabled:opacity-40 flex items-center gap-1 shadow transition"
+                >
+                  Next Question <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 text-slate-400">
+              No questions found matching your filter.
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ================================================= */}
+      {/* VIEW 2: ALL QUESTIONS LIST ACCORDION */}
+      {/* ================================================= */}
+      {activeView === "list" && (
+        <div className="space-y-4">
+          {filteredQuestions.map((q, idx) => (
+            <div
+              key={idx}
+              className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-3"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <span className="w-7 h-7 rounded-xl bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center shrink-0">
+                    {idx + 1}
+                  </span>
+                  <h3 className="font-bold text-slate-900 text-base">
+                    {q.question}
+                  </h3>
+                </div>
+
+                <span
+                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                    q.difficulty === "Easy"
+                      ? "bg-green-100 text-green-700"
+                      : q.difficulty === "Hard"
+                      ? "bg-red-100 text-red-700"
+                      : "bg-amber-100 text-amber-700"
+                  }`}
+                >
+                  {q.difficulty || "Medium"}
+                </span>
+              </div>
+
+              <div className="pl-10 text-xs md:text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100">
+                <span className="text-xs font-bold text-blue-700 block mb-1">
+                  Answer Explanation:
+                </span>
+                {q.answer}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
 
-export default InterviewPreparation;
+export default InterviewPrep;

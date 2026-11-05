@@ -69,7 +69,7 @@ const SavedJobs = () => {
   // Loading
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 p-8">
+      <div className="p-6 md:p-10 space-y-8">
         <div className="max-w-6xl mx-auto">
           <p className="text-slate-600">
             Loading saved jobs...
@@ -80,7 +80,7 @@ const SavedJobs = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
+    <div className="p-6 md:p-10 space-y-8">
       <div className="max-w-6xl mx-auto">
 
         {/* Header */}

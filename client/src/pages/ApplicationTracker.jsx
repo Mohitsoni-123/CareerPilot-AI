@@ -142,7 +142,7 @@ const ApplicationTracker = () => {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 md:p-10">
+    <div className="p-6 md:p-10 space-y-8">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
